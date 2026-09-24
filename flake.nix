@@ -72,8 +72,9 @@
         "x86_64-darwin"
       ];
 
+      # No `apps`: every package is a `writeShellScriptBin`, so it carries
+      # `meta.mainProgram` and `nix run .#<name>` resolves straight to it.
       perSystem = {
-        lib,
         config,
         system,
         ...
@@ -199,17 +200,6 @@
             mainProgram = "agy";
             configDirVar = null;
             relDir = ".gemini";
-          };
-        };
-
-        apps = {
-          default = {
-            type = "app";
-            program = lib.getExe config.packages.default;
-          };
-          oh-my-opencode = {
-            type = "app";
-            program = lib.getExe config.packages.oh-my-opencode;
           };
         };
       };
