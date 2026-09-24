@@ -299,3 +299,29 @@ harness reads and writes one directory, so `destDir` defaults to `relDir`.
 and takes `aiInputs.self.packages.${system}.opencode` instead. This is fine —
 the recursion warned about above is between the *option default* and the module
 the package evaluates, and `self.packages` is not that edge.
+
+## `nix run` on a machine that home-manager already manages
+
+`ai-sync` retargets any symlink it finds pointing into `/nix/store`, on the
+assumption that such a link is one of its own. On a host where home-manager
+manages the same harness, it is not: home-manager's links point into a
+`…-home-manager-files/…` path, and replacing one leaves a file home-manager did
+not write. The next activation refuses to touch it and the whole
+`home-manager-<user>.service` fails:
+
+```
+Existing file '/home/user/.config/claude/skills/claude-code-home-manager' would be clobbered
+```
+
+Twenty-five files, one `nix run`, and a broken rebuild.
+
+Per-file skipping is not enough. A path home-manager does not manage *today*
+but starts managing after a config change fails the same way, so the check is
+whole-directory and happens before anything is written: if any file in the
+manifest is already a `…-home-manager-files/…` symlink, `ai-sync` says so in one
+line and exits. That is the right answer anyway — home-manager has the config
+there already, and keeps it current.
+
+Recovery, if it has already happened: delete the links under the harness's
+config dir whose target is in the store but *not* under `-home-manager-files`,
+drop `.ai-sync-keep`, and activate again.

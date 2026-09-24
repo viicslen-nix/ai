@@ -13,6 +13,22 @@ CONFIG_DIR="$2"
 KEEP_FILE="$CONFIG_DIR/.ai-sync-keep"
 
 mkdir -p "$CONFIG_DIR"
+
+# home-manager already manages this harness here: it wrote these files and keeps
+# them current, so there is nothing to add. Taking even one of them over makes
+# the next activation fail with "would be clobbered" — and so would installing a
+# path home-manager only starts managing later.
+while IFS=$'\t' read -r rel _; do
+  [ -n "$rel" ] || continue
+  case "$(readlink "$CONFIG_DIR/$rel" 2>/dev/null)" in
+  *-home-manager-files/*)
+    printf 'ai-sync: %s is managed by home-manager; leaving it alone\n' \
+      "$CONFIG_DIR" >&2
+    exit 0
+    ;;
+  esac
+done <"$MANIFEST"
+
 touch "$KEEP_FILE" 2>/dev/null || true
 
 # `a`/`q` answered once apply to the rest of the run.
@@ -33,11 +49,12 @@ while IFS=$'\t' read -r rel src; do
   [ -n "$rel" ] || continue
   dst="$CONFIG_DIR/$rel"
 
-  # Never installed, or ours already: no question to ask.
+  # Never installed: no question to ask.
   if [ ! -e "$dst" ] && [ ! -L "$dst" ]; then
     install_file "$src" "$dst"
     continue
   fi
+
   if [ -L "$dst" ] && case "$(readlink "$dst")" in /nix/store/*) true ;; *) false ;; esac; then
     install_file "$src" "$dst"
     continue
