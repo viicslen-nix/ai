@@ -10,7 +10,8 @@ A local delta on `github:mattpocock/skills` — `skills/productivity/grilling`.
 Upstream has the agent print numbered questions as prose and wait for the user
 to type answers back. Every harness we run it in has an interactive question
 tool instead, so the round goes through that and the prose block is kept as the
-documented fallback.
+documented fallback. The tool's terse fields invite context-free questions, so
+the patch requires each question and option to carry its stakes.
 
 The `from` anchors are plain ASCII spans that have survived every upstream
 reword so far. `patchSkill` asserts they still exist, so a reword breaks the
