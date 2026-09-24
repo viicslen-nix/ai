@@ -59,15 +59,14 @@ keep your version and say so. `AI_SYNC=force` replaces without asking,
 
   # In your home-manager configuration:
   imports = [inputs.ai.homeManagerModules.default];
-
-  modules.programs.aiProfile.enable = true;
 }
 ```
 
-`homeManagerModules.default` brings everything. The pieces are also exported
-separately — `ai`, `profile`, `claude-code`, `opencode`, `opencode2`,
-`opencode-service` — if you want the fan-out without the opinions, or one
-harness without the rest.
+`homeManagerModules.default` brings everything, opinions included — it turns
+`modules.programs.aiProfile` on for you, and `enable = false` turns it back off.
+The pieces are also exported separately — `ai`, `profile`, `claude-code`,
+`opencode`, `opencode2`, `opencode-service` — if you want the fan-out without
+the opinions, or one harness without the rest.
 
 ### The two layers
 
@@ -90,9 +89,9 @@ Each target writes only what that harness supports, and warns rather than fails
 when a harness's module isn't present. Commands are translated per harness;
 Codex and Copilot take context and skills but have no command concept.
 
-**`modules.programs.aiProfile`** is the opinion: enable it and you get
-everything under [What's in it](#whats-in-it), plus the integrations. It is one
-option, and it is what the `nix run` packages turn on.
+**`modules.programs.aiProfile`** is the opinion: it gives you everything under
+[What's in it](#whats-in-it), plus the integrations. `homeManagerModules.default`
+and every `nix run` package turn it on; importing `profile` on its own does not.
 
 ### NixOS
 

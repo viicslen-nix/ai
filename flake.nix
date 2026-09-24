@@ -200,8 +200,14 @@
 
       flake = {
         homeManagerModules = {
-          # Everything, for a consumer that wants the lot.
+          # Everything, for a consumer that wants the lot — including the
+          # opinions, which is the point of asking for all of it. `mkDefault`, so
+          # `enable = false` still turns them off.
           default.imports = [
+            ({lib, ...}: {
+              key = "viicslen-ai:profile-on";
+              config.modules.programs.aiProfile.enable = lib.mkDefault true;
+            })
             (mkHmModule "ai" ./hmModules/ai)
             (mkHmModule "profile" ./hmModules/profile.nix)
             (mkHmModule "claude-code" ./hmModules/claude-code)
