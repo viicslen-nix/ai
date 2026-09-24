@@ -1,0 +1,137 @@
+{
+  description = "AI harness configuration — shared config and per-harness modules";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+
+    packages = {
+      url = "github:viicslen-nix/packages";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # The harness packages (claude-code, codex, copilot-cli, opencode2, …).
+    # Leave `nixpkgs` un-overridden — it is what keeps cache.numtide.com hitting.
+    llm-agents = {
+      url = "github:numtide/llm-agents.nix";
+    };
+
+    # opencode v1, which ships its own package and overlay.
+    opencode = {
+      url = "github:anomalyco/opencode";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # Skill helpers: mkSkillAttrSet, selectFromInput, patchSkill.
+    viicslen-lib = {
+      url = "github:viicslen-nix/lib";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    mattpocock-skills = {
+      url = "github:mattpocock/skills";
+      flake = false;
+    };
+
+    flake-parts.url = "github:hercules-ci/flake-parts";
+
+    # home-manager is reached through omniflake's index rather than carrying an
+    # input of its own; see the `inputs` binding in `outputs` below. Consumers
+    # should point this at their own omniflake so only one copy is locked.
+    omniflake = {
+      url = "github:fzakaria/omniflake";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+  };
+
+  outputs = rawInputs @ {flake-parts, ...}: let
+    # home-manager under its old name, so every `inputs.home-manager` below —
+    # the two packages and `_module.args.inputs` — is unchanged.
+    inputs = rawInputs // {home-manager = rawInputs.omniflake.flakes.home-manager;};
+
+    # `aiInputs`, not `inputs`: home-manager's `extraSpecialArgs` wins over
+    # `_module.args`, so a consumer passing its own `inputs` would silently
+    # shadow ours. It lives in a keyed module of its own because the option is
+    # unique — defining it in each wrapper is four conflicting definitions.
+    argsModule = {
+      key = "viicslen-ai:args";
+      _module.args.aiInputs = inputs;
+    };
+
+    # The `key` is not decoration either: two presets import the same module,
+    # and the module system dedupes only by key.
+    mkHmModule = name: path: {
+      key = "viicslen-ai:${name}";
+      imports = [argsModule path];
+    };
+  in
+    flake-parts.lib.mkFlake {inherit inputs;} {
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "aarch64-darwin"
+        "x86_64-darwin"
+      ];
+
+      perSystem = {
+        lib,
+        config,
+        system,
+        ...
+      }: let
+        pkgs = import inputs.nixpkgs {
+          inherit system;
+          overlays = [inputs.opencode.overlays.default];
+        };
+      in {
+        formatter = pkgs.alejandra;
+
+        packages = {
+          default = pkgs.callPackage ./packages/opencode.nix {inherit inputs;};
+          opencode = pkgs.callPackage ./packages/opencode.nix {inherit inputs;};
+          oh-my-opencode = pkgs.callPackage ./packages/oh-my-opencode.nix {inherit inputs;};
+        };
+
+        apps = {
+          default = {
+            type = "app";
+            program = lib.getExe config.packages.default;
+          };
+          oh-my-opencode = {
+            type = "app";
+            program = lib.getExe config.packages.oh-my-opencode;
+          };
+        };
+      };
+
+      flake = {
+        homeManagerModules = {
+          # Everything, for a consumer that wants the lot.
+          default.imports = [
+            (mkHmModule "ai" ./hmModules/ai)
+            (mkHmModule "profile" ./hmModules/profile.nix)
+            (mkHmModule "claude-code" ./hmModules/claude-code)
+            (mkHmModule "opencode" ./hmModules/opencode.nix)
+            (mkHmModule "opencode2" ./hmModules/opencode2.nix)
+          ];
+
+          ai = mkHmModule "ai" ./hmModules/ai;
+          claude-code = mkHmModule "claude-code" ./hmModules/claude-code;
+          opencode = mkHmModule "opencode" ./hmModules/opencode.nix;
+          opencode2 = mkHmModule "opencode2" ./hmModules/opencode2.nix;
+          opencode-service = mkHmModule "opencode-service" ./hmModules/service.nix;
+          profile = mkHmModule "profile" ./hmModules/profile.nix;
+        };
+
+        nixosModules = {
+          opencode-web = {
+            key = "viicslen-ai:opencode-web";
+            imports = [./nixos.nix];
+            # Same shadowing hazard as the home-manager side: the consumer's
+            # `specialArgs.inputs` is not ours.
+            _module.args.aiInputs = inputs;
+            nixpkgs.overlays = [inputs.opencode.overlays.default];
+          };
+        };
+      };
+    };
+}
