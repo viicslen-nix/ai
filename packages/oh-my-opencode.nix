@@ -11,7 +11,7 @@
       aiInputs = inputs;
     };
     modules = [
-      ../hmModules/opencode.nix
+      ../hmModules/opencode/v1.nix
       {
         home.stateVersion = "25.11";
         home.username = "runner";

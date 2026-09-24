@@ -18,8 +18,8 @@ in {
 
     package = mkOption {
       type = types.package;
-      default = pkgs.callPackage ./packages/opencode.nix {inputs = aiInputs;};
-      defaultText = literalExpression "pkgs.callPackage ./packages/opencode.nix { inputs = aiInputs; }";
+      default = pkgs.callPackage ../packages/opencode.nix {inputs = aiInputs;};
+      defaultText = literalExpression "pkgs.callPackage ../packages/opencode.nix { inputs = aiInputs; }";
       description = "The opencode package to use for the web service.";
     };
 
@@ -59,6 +59,6 @@ in {
     };
 
     # Inject the per-user HM module into every home-manager user
-    home-manager.sharedModules = [./hmModules/service.nix];
+    home-manager.sharedModules = [../hmModules/opencode/service.nix];
   };
 }

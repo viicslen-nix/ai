@@ -213,3 +213,42 @@ only path `agy` reads. And `nix run` on a non-opencode2 harness prints two
 warnings about `programs.opencode2` being unavailable: that is the fan-out
 correctly reporting a target with no module behind it, and it is worth more on
 a host than it costs here.
+
+## Where things live
+
+```
+builders/      mkHarness.nix + sync.sh — functions that produce packages
+packages/      the two derivations the flake exports
+hmModules/     home-manager modules; opencode/ holds v1, v2 and the service
+nixosModules/  opencode-web
+content/       every markdown payload
+```
+
+Three of those were somewhere else first, for no reason beyond how the opencode
+subflake happened to be shaped when it was absorbed.
+
+`mkHarness` sat in `packages/`, which reads as "the things exported as
+packages" — and it is not one. It is a builder: it takes `pkgs`, calls
+`homeManagerConfiguration` and `writeShellScriptBin`, and hands back a
+derivation. That is what `flakes/packages/builders/` is for in this repo, and
+what `build-support` is for in nixpkgs. It is not `lib/` material either —
+everything in `flakes/lib` is a pure function that never sees `pkgs`. `sync.sh`
+moved with it because `mkHarness` embeds it by relative path; they are one unit.
+
+The three opencode modules were loose files at the top of `hmModules/`, mixed
+in with `profile.nix` and the `ai`/`claude-code` directories, which made a
+four-file harness look like three unrelated ones. They are `v1.nix`, `v2.nix`
+and `service.nix` under `hmModules/opencode/` now; the exported attribute names
+(`opencode`, `opencode2`, `opencode-service`) stay as they were, so nothing
+downstream moved. v2 exists as a separate module because opencode 2.x renamed
+the config keys, and its *option* names deliberately match v1 — so retiring v1
+is deleting `v1.nix` and renaming the other.
+
+`nixos.nix` was a single NixOS module at the flake root, next to `flake.nix`,
+with nothing to say it was the opencode web server. It cannot live under
+`hmModules/` — wrong class — so it is `nixosModules/opencode-web.nix`, named
+after the attribute it exports and mirroring `hmModules/`.
+
+The two opencode *packages* stayed in `packages/`. They really are exported
+derivations, and the flake's own `packages.opencode` is what `opencode-web`
+defaults to.

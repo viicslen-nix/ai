@@ -82,7 +82,7 @@
           inherit system;
           overlays = [inputs.opencode.overlays.default];
         };
-        mkHarness = import ./packages/mkHarness.nix {inherit pkgs inputs;};
+        mkHarness = import ./builders/mkHarness.nix {inherit pkgs inputs;};
 
         llm = inputs.llm-agents.packages.${system};
       in {
@@ -106,7 +106,7 @@
 
           opencode2 = mkHarness {
             name = "opencode2";
-            modules = [./hmModules/opencode2.nix];
+            modules = [./hmModules/opencode/v2.nix];
             enable = {
               modules.programs.opencode2.enable = true;
               modules.programs.aiProfile.enable = true;
@@ -171,22 +171,22 @@
             (mkHmModule "ai" ./hmModules/ai)
             (mkHmModule "profile" ./hmModules/profile.nix)
             (mkHmModule "claude-code" ./hmModules/claude-code)
-            (mkHmModule "opencode" ./hmModules/opencode.nix)
-            (mkHmModule "opencode2" ./hmModules/opencode2.nix)
+            (mkHmModule "opencode" ./hmModules/opencode/v1.nix)
+            (mkHmModule "opencode2" ./hmModules/opencode/v2.nix)
           ];
 
           ai = mkHmModule "ai" ./hmModules/ai;
           claude-code = mkHmModule "claude-code" ./hmModules/claude-code;
-          opencode = mkHmModule "opencode" ./hmModules/opencode.nix;
-          opencode2 = mkHmModule "opencode2" ./hmModules/opencode2.nix;
-          opencode-service = mkHmModule "opencode-service" ./hmModules/service.nix;
+          opencode = mkHmModule "opencode" ./hmModules/opencode/v1.nix;
+          opencode2 = mkHmModule "opencode2" ./hmModules/opencode/v2.nix;
+          opencode-service = mkHmModule "opencode-service" ./hmModules/opencode/service.nix;
           profile = mkHmModule "profile" ./hmModules/profile.nix;
         };
 
         nixosModules = {
           opencode-web = {
             key = "viicslen-ai:opencode-web";
-            imports = [./nixos.nix];
+            imports = [./nixosModules/opencode-web.nix];
             # Same shadowing hazard as the home-manager side: the consumer's
             # `specialArgs.inputs` is not ours.
             _module.args.aiInputs = inputs;
