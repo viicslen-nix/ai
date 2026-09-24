@@ -54,9 +54,42 @@ package is an infinite recursion.
 The seeding behaviour is what `mkHarness` is meant to replace, with a sync step
 that diffs and confirms rather than skipping silently.
 
-## Still tied to the nixos repo
+## `pkgs.local` is not available here
 
-`hmModules/claude-code` reads `pkgs.local.ccstatusline`, which comes from that
-repo's overlay. It resolves today because `useGlobalPkgs` hands the host's
-`pkgs` in, and it will break the moment this flake is consumed anywhere else.
-It needs to become an option before the `nix run` packages are real.
+`hmModules/claude-code` used to read `pkgs.local.ccstatusline`, which resolved
+only because `useGlobalPkgs` hands the consuming host's `pkgs` in. Anything
+reached that way breaks the moment another consumer imports this flake.
+It is now `aiInputs.packages.packages.${system}.ccstatusline` — the packages
+flake is a real input here, so nothing depends on the consumer's overlay.
+
+## Where skills come from, and in what order
+
+`modules.programs.ai.skills` is three layers, last wins:
+
+1. `upstreamSkills` — taken verbatim from `github:mattpocock/skills` via
+   `selectFromInput`, curated by name because that repo carries more than we
+   want (`in-progress/`, `misc/`, `deprecated/`).
+2. `patchedSkills` — the same upstream skills with the local edits in
+   `content/skill-patches` rewritten in, so a bump of `mattpocock-skills` keeps
+   flowing and a reword that moves an anchor fails the build instead of
+   silently reverting.
+3. `mkSkillAttrSet ../content/skills` — a local directory, which shadows either
+   of the layers above outright. It also holds the vendored collections
+   (`just vendor-skills` in the consuming repo), which are plain checked-in
+   skills as far as this is concerned.
+
+One upstream path is worth remembering: `writing-for-agents` was renamed from
+`writing-great-skills` and had its `GLOSSARY.md` split into `SKILL-MECHANICS.md`
+(mattpocock/skills 1fc6573e), so the key here changed with it.
+
+The option merges across definitions, so a consumer adds its own skills rather
+than replacing these — which is how the nixos repo layers in the skills that
+describe infrastructure not worth publishing.
+
+## `profile` is opt-in, and holds no credentials
+
+`modules.programs.aiProfile.enable` turns on the opinionated set: the skills
+and commands above, the claude-code marketplaces and plugins, and the four MCP
+backends that authenticate with OAuth or not at all. Anything needing a secret
+is the consumer's — `google_stitch` stays in the nixos repo with the agenix
+secret that feeds its header.
