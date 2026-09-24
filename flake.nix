@@ -88,6 +88,22 @@
       in {
         formatter = pkgs.alejandra;
 
+        # Everything `just` reaches for. `gh skill` is a preview command, so a
+        # gh old enough to lack it makes every recipe here fail.
+        devShells.default = pkgs.mkShell {
+          packages = with pkgs; [
+            gh
+            git
+            just
+            alejandra
+            util-linux # column, for `just skills`
+          ];
+
+          shellHook = ''
+            echo "ai — just vendor-skills <owner/repo> [skill|--all] | update-skills | skills"
+          '';
+        };
+
         packages = {
           default = config.packages.opencode;
 

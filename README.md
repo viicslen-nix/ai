@@ -125,6 +125,29 @@ modules.programs.ai.mcps.my_service = {
 systemd.user.services.mcp-gateway.Service.EnvironmentFile = "%t/agenix/my-service";
 ```
 
+## Working on it
+
+```bash
+nix develop
+```
+
+Brings `gh`, `just`, `git`, `alejandra` and `column` — everything the recipes
+need. `gh skill` is a preview command, so an older `gh` on your `PATH` will fail
+every one of them; the shell pins a new enough one.
+
+```bash
+just vendor-skills <owner/repo> [skill|--all]   # add an upstream collection
+just update-skills [--dry-run]                  # re-pull every vendored skill
+just skills                                     # list them with their origin
+```
+
+Vendoring is for upstreams carrying a lot of non-skill weight — a non-flake
+input has no sparse fetch, so it would copy the whole repository into the store.
+A small, skill-only repo rides as a `flake = false` input instead; see
+`mattpocock-skills` in `flake.nix`. `gh` records each skill's origin in its own
+`SKILL.md` frontmatter, so there is no manifest to keep in step — and a skill
+written here by hand has none, so `update` warns and skips it.
+
 ## Layout
 
 ```
