@@ -89,9 +89,38 @@
         formatter = pkgs.alejandra;
 
         packages = {
-          default = pkgs.callPackage ./packages/opencode.nix {inherit inputs;};
-          opencode = pkgs.callPackage ./packages/opencode.nix {inherit inputs;};
-          oh-my-opencode = pkgs.callPackage ./packages/oh-my-opencode.nix {inherit inputs;};
+          default = config.packages.opencode;
+
+          opencode = mkHarness {
+            name = "opencode";
+            modules = [./hmModules/opencode/v1.nix];
+            enable = {
+              modules.programs.opencode.enable = true;
+              modules.programs.aiProfile.enable = true;
+            };
+            package = inputs.opencode.packages.${system}.default;
+            target = "opencode";
+            configDirVar = "OPENCODE_CONFIG_DIR";
+          };
+
+          oh-my-opencode = mkHarness {
+            name = "oh-my-opencode";
+            modules = [
+              ./hmModules/opencode/v1.nix
+              ./hmModules/opencode/oh-my.nix
+            ];
+            enable = {
+              modules.programs.opencode.enable = true;
+              modules.programs.aiProfile.enable = true;
+            };
+            package = inputs.opencode.packages.${system}.default;
+            mainProgram = "opencode";
+            target = "opencode";
+            configDirVar = "OPENCODE_CONFIG_DIR";
+            # The module writes `opencode/`; this variant keeps its own directory.
+            relDir = ".config/opencode";
+            destDir = ".config/oh-my-opencode";
+          };
 
           claude = mkHarness {
             name = "claude";

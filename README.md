@@ -129,9 +129,8 @@ systemd.user.services.mcp-gateway.Service.EnvironmentFile = "%t/agenix/my-servic
 ## Layout
 
 ```
-builders/      mkHarness.nix + sync.sh — functions that produce packages
-packages/      the two derivations the flake exports
-hmModules/     home-manager modules; opencode/ holds v1, v2 and the service
+builders/      mkHarness.nix + sync.sh — every package is built from these
+hmModules/     home-manager modules; opencode/ holds v1, v2, oh-my and the service
 nixosModules/  opencode-web
 content/       every markdown payload
 ```

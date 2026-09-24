@@ -18,8 +18,8 @@ in {
 
     package = mkOption {
       type = types.package;
-      default = pkgs.callPackage ../packages/opencode.nix {inputs = aiInputs;};
-      defaultText = literalExpression "pkgs.callPackage ../packages/opencode.nix { inputs = aiInputs; }";
+      default = aiInputs.self.packages.${pkgs.stdenv.hostPlatform.system}.opencode;
+      defaultText = literalExpression "aiInputs.self.packages.\${system}.opencode";
       description = "The opencode package to use for the web service.";
     };
 

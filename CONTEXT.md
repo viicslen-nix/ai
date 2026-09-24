@@ -47,12 +47,12 @@ depended on who was evaluating.
 It is now unambiguously the upstream binary. On a home-manager host that is
 equivalent: the wrapper only copied config files that were absent, and
 home-manager has already symlinked all 77 of them, so it was a no-op. Restoring
-the old shape is not possible cleanly either — `packages/opencode.nix`
+the old shape is not possible cleanly either — the `opencode` *package*
 evaluates this module to harvest its config, so defaulting the option to that
 package is an infinite recursion.
 
-The seeding behaviour is what `mkHarness` is meant to replace, with a sync step
-that diffs and confirms rather than skipping silently.
+The seeding behaviour is what `mkHarness` replaces, with a sync step that diffs
+and confirms rather than skipping silently.
 
 ## `pkgs.local` is not available here
 
@@ -121,9 +121,7 @@ differs per harness for the same reason the table does — codex has neither
 harness's subdirectory, and emits a wrapper that reconciles them into the real
 config dir before exec'ing the binary. The module is the single source of
 truth: a host imports it through home-manager, and the package evaluates the
-same file. `packages/opencode.nix` and `oh-my-opencode.nix` are the two
-hand-rolled ancestors of this and still exist; they seed with
-`if [ ! -f "$target" ]`, which is the behaviour `ai-sync` replaces.
+same file.
 
 Each harness gets `hmModules/ai` and `hmModules/profile.nix` plus whatever else
 it needs. `profile.nix` therefore has to gate its claude-code block on
@@ -217,9 +215,8 @@ a host than it costs here.
 ## Where things live
 
 ```
-builders/      mkHarness.nix + sync.sh — functions that produce packages
-packages/      the two derivations the flake exports
-hmModules/     home-manager modules; opencode/ holds v1, v2 and the service
+builders/      mkHarness.nix + sync.sh — every package is built from these
+hmModules/     home-manager modules; opencode/ holds v1, v2, oh-my and the service
 nixosModules/  opencode-web
 content/       every markdown payload
 ```
@@ -249,9 +246,8 @@ with nothing to say it was the opencode web server. It cannot live under
 `hmModules/` — wrong class — so it is `nixosModules/opencode-web.nix`, named
 after the attribute it exports and mirroring `hmModules/`.
 
-The two opencode *packages* stayed in `packages/`. They really are exported
-derivations, and the flake's own `packages.opencode` is what `opencode-web`
-defaults to.
+`packages/` is gone. It held two hand-rolled ancestors of `mkHarness`, and
+they are the subject of the next section.
 
 ## `nix run` was loud, and the noise was hiding a bug
 
@@ -277,3 +273,29 @@ failing. It is `targetOf` now.
 `allTargets` is a literal list that has to track the module's `targets` option.
 If it goes stale the missing target stays on and warns — the old noise, not a
 breakage.
+
+## The two opencode packages were `mkHarness` written out by hand
+
+`packages/opencode.nix` and `oh-my-opencode.nix` predated `mkHarness` and were
+near-identical copies of each other. They carried every fault it has since had
+fixed, and one of its own:
+
+- they filtered `xdg.configFile`, so they shipped **9 and 10 files** where the
+  same module through `mkHarness` yields 70 and 71;
+- they never imported `hmModules/ai` or `profile.nix`, so `nix run .#opencode`
+  had no skills, no commands and no MCP servers — the one harness that did not;
+- they `cp`'d under `if [ ! -f "$target" ]`, so a file installed once was never
+  updated again, silently, no matter how far the flake moved on;
+- and they printed `Installed <path>` per file.
+
+Both are `mkHarness` calls now. `packages/` is gone with them.
+
+oh-my-opencode is why `mkHarness` has `destDir`: it is the same opencode module,
+which writes `opencode/`, pointed at `~/.config/oh-my-opencode` so it can run
+beside a plain opencode without either touching the other's config. Every other
+harness reads and writes one directory, so `destDir` defaults to `relDir`.
+
+`nixosModules/opencode-web` can no longer `callPackage` a file for its default
+and takes `aiInputs.self.packages.${system}.opencode` instead. This is fine —
+the recursion warned about above is between the *option default* and the module
+the package evaluates, and `self.packages` is not that edge.

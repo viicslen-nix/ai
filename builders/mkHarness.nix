@@ -30,6 +30,9 @@
   # Where the harness's module writes, relative to $HOME. Not every harness is
   # XDG-aware — antigravity owns ~/.gemini outright.
   relDir ? ".config/${name}",
+  # Where the wrapper puts them, when that is not where the module wrote them:
+  # oh-my-opencode is the opencode module pointed at a directory of its own.
+  destDir ? relDir,
 }: let
   inherit (pkgs) lib;
 
@@ -88,7 +91,7 @@
   '';
 in
   pkgs.writeShellScriptBin name ''
-    config_dir="$HOME/${relDir}"
+    config_dir="$HOME/${destDir}"
     ${syncScript}/bin/ai-sync ${manifest} "$config_dir"
     ${lib.optionalString (configDirVar != null) ''export ${configDirVar}="$config_dir"''}
     exec ${lib.getExe' package mainProgram} "$@"
