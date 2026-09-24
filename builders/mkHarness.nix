@@ -23,11 +23,25 @@
   # Env var that points the harness at its config dir. `null` means the harness
   # has no such knob and owns a fixed path under $HOME — see antigravity.
   configDirVar ? null,
+  # This harness's attribute under `modules.programs.ai.targets`. Every other
+  # target is turned off: a harness package carries one harness, so the rest
+  # would only warn about a module that is not there.
+  target,
   # Where the harness's module writes, relative to $HOME. Not every harness is
   # XDG-aware — antigravity owns ~/.gemini outright.
   relDir ? ".config/${name}",
 }: let
   inherit (pkgs) lib;
+
+  # Keep in sync with `options.modules.programs.ai.targets`.
+  allTargets = [
+    "opencode"
+    "opencode2"
+    "claude-code"
+    "antigravity-cli"
+    "github-copilot-cli"
+    "codex"
+  ];
 
   hmConfig = inputs.home-manager.lib.homeManagerConfiguration {
     inherit pkgs;
@@ -40,6 +54,7 @@
       ++ modules
       ++ [
         enable
+        {modules.programs.ai.targets = lib.genAttrs allTargets (t: t == target);}
         {
           home.stateVersion = "25.11";
           home.username = "runner";
@@ -53,16 +68,16 @@
   # `home.file`, not `xdg.configFile`: a module that writes an explicit
   # `${config.xdg.configHome}/<x>` path never appears in the latter. Upstream
   # codex leaves a leading slash on its targets, so strip one before matching.
-  target = f: lib.removePrefix "/" f.target;
+  targetOf = f: lib.removePrefix "/" f.target;
   owned =
-    lib.filter (f: lib.hasPrefix "${relDir}/" (target f))
+    lib.filter (f: lib.hasPrefix "${relDir}/" (targetOf f))
     (lib.attrValues hmConfig.config.home.file);
 
   # One line per file: relative path, tab, store path. Built at eval time so
   # the wrapper does no work beyond reading it.
   manifest = pkgs.writeText "${name}-manifest" (
     lib.concatMapStrings (
-      f: "${lib.removePrefix "${relDir}/" (target f)}\t${f.source}\n"
+      f: "${lib.removePrefix "${relDir}/" (targetOf f)}\t${f.source}\n"
     )
     owned
   );

@@ -43,8 +43,9 @@ while IFS=$'\t' read -r rel src; do
     continue
   fi
 
-  # A real file: identical content needs no prompt either.
-  if cmp -s "$src" "$dst"; then
+  # A multi-file skill is a directory, so this compares trees, not just files —
+  # `cmp` reports "Is a directory" and claims every one of them differs.
+  if diff -rq "$src" "$dst" >/dev/null 2>&1; then
     continue
   fi
 
@@ -80,7 +81,11 @@ while IFS=$'\t' read -r rel src; do
   esac
 
   printf '\n\033[1m%s\033[0m differs from the version this build carries:\n\n' "$rel"
-  diff --color=always -u "$dst" "$src" | tail -n +3
+  if [ -d "$src" ]; then
+    diff --color=always -ru "$dst" "$src"
+  else
+    diff --color=always -u "$dst" "$src" | tail -n +3
+  fi
   printf '\nReplace it? [y]es / [n]o / [a]ll / [q]uit asking: '
   read -r reply </dev/tty || reply=n
 
@@ -102,6 +107,6 @@ while IFS=$'\t' read -r rel src; do
 done <"$MANIFEST"
 
 if [ ${#skipped[@]} -gt 0 ]; then
-  printf 'ai-sync: kept your version of %d file(s): %s\n' \
-    "${#skipped[@]}" "${skipped[*]}" >&2
+  printf 'ai-sync: kept your version of %d file(s); AI_SYNC=force replaces them\n' \
+    "${#skipped[@]}" >&2
 fi

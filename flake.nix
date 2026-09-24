@@ -100,6 +100,7 @@
               programs.claude-code.enable = true;
               modules.programs.aiProfile.enable = true;
             };
+            target = "claude-code";
             package = llm.claude-code;
             configDirVar = "CLAUDE_CONFIG_DIR";
           };
@@ -111,6 +112,7 @@
               modules.programs.opencode2.enable = true;
               modules.programs.aiProfile.enable = true;
             };
+            target = "opencode2";
             package = llm.opencode2;
             configDirVar = "OPENCODE_CONFIG_DIR";
           };
@@ -121,6 +123,7 @@
               programs.codex.enable = true;
               modules.programs.aiProfile.enable = true;
             };
+            target = "codex";
             package = llm.codex;
             configDirVar = "CODEX_HOME";
           };
@@ -131,6 +134,7 @@
               programs.github-copilot-cli.enable = true;
               modules.programs.aiProfile.enable = true;
             };
+            target = "github-copilot-cli";
             package = llm.copilot-cli;
             mainProgram = "copilot";
             configDirVar = "COPILOT_HOME";
@@ -145,6 +149,7 @@
               programs.antigravity-cli.enable = true;
               modules.programs.aiProfile.enable = true;
             };
+            target = "antigravity-cli";
             package = llm.antigravity-cli;
             mainProgram = "agy";
             configDirVar = null;

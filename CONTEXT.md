@@ -252,3 +252,28 @@ after the attribute it exports and mirroring `hmModules/`.
 The two opencode *packages* stayed in `packages/`. They really are exported
 derivations, and the flake's own `packages.opencode` is what `opencode-web`
 defaults to.
+
+## `nix run` was loud, and the noise was hiding a bug
+
+The wall of `cmp: …: Is a directory` was not cosmetic. A multi-file skill is a
+directory in the store, `cmp` cannot compare one, and its non-zero exit put all
+38 of them down the "this file differs" path — so a non-interactive run
+"kept your version" of skills that were never installed in the first place, and
+an interactive one would have asked 38 questions it had no diff to show. The
+comparison is `diff -rq` now, which handles a file and a tree alike, and the
+prompt's diff adds `-r` when the source is a directory.
+
+The report that followed listed all 38 paths on one line. It prints a count and
+points at `AI_SYNC=force`; the names were never the useful part.
+
+The two `trace: warning` lines above it came from the profile enabling all six
+targets while the package carries one harness's module. `mkHarness` takes a
+`target` now and turns the other five off — they had nothing to write anyway.
+Watch the shadowing: `mkHarness` already had a local `target` helper for
+`home.file` entries, and `t == target` against a *function* is quietly false
+for every target, which strips a harness down to its `settings.json` without
+failing. It is `targetOf` now.
+
+`allTargets` is a literal list that has to track the module's `targets` option.
+If it goes stale the missing target stays on and warns — the old noise, not a
+breakage.
