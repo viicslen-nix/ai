@@ -59,16 +59,12 @@ with lib; let
   mkDir = subdir: attrs:
     mapAttrs' (name: content: nameValuePair "opencode1/${subdir}/${name}.md" (mkEntry content)) attrs;
 
-  mkSkills = attrs:
-    mapAttrs' (name: content:
-      if hm.strings.isPathLike content && (!isPath content || pathIsDirectory content)
-      then
-        nameValuePair "opencode1/skills/${name}" {
-          source = content;
-          recursive = true;
-        }
-      else nameValuePair "opencode1/skills/${name}/SKILL.md" (mkEntry content))
-    attrs;
+  skillDir = import ../../builders/skillDir.nix {inherit lib pkgs;};
+  mkSkills = mapAttrs' (name: content:
+    nameValuePair "opencode1/skills/${name}" {
+      source = skillDir name content;
+      recursive = true;
+    });
 
   mkDefaultAttrs = mapAttrs (_: mkDefault);
 

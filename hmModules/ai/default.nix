@@ -113,6 +113,13 @@
       else cfg.skills;
 
     mkDefaultAttrs = attrs: mapAttrs (_: mkDefault) attrs;
+    skillDir = import ../../builders/skillDir.nix {inherit lib pkgs;};
+    # opencode also reads claude-code's skills directory.
+    claudeCodeSkills =
+      if isAttrs effectiveSkills
+      then mapAttrs skillDir effectiveSkills
+      else effectiveSkills;
+
     mkDefaultSkills = skills:
       if isAttrs skills
       then mkDefaultAttrs skills
@@ -329,7 +336,7 @@
           commands = mkDefaultAttrs claudeCodeCommands;
           agents = mkDefaultAttrs effectiveAgents;
           context = mkIf hasGlobalContext (mkDefault cfg.context);
-          skills = mkIf (hasGlobalSkills && hasClaudeCodeSkillsOption) (mkDefaultSkills effectiveSkills);
+          skills = mkIf (hasGlobalSkills && hasClaudeCodeSkillsOption) (mkDefaultSkills claudeCodeSkills);
           settings = optionalAttrs (effectiveHooks != {}) {hooks = effectiveHooks;};
         };
       }))

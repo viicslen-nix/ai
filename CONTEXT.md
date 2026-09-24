@@ -401,27 +401,25 @@ ships one plugin, `opencode-claude-auth-v2`, which does declare `@opencode/plugi
 `dcp.jsonc` stays with v1 for the same reason. `oh-my-opencode` is v1-only, so
 the `oh-my-opencode` package stays on v1 too.
 
-## The background server must not be rooted at `$HOME`
+## Skills must be store directories, never bare store files
 
-opencode v2 added a persistent background server (`serve --service`) that v1 had
-no equivalent of, and it recursively watches its working directory. Started from
-a shell sitting in `$HOME` — which is what happens the first time you run plain
-`opencode` after the v1→v2 swap — it registered **1,017,474 inotify watches**,
-97% of this machine's 1,048,576 limit. Every `watch()` on the box then failed,
-including opencode's own TUI watching
-`~/.local/state/opencode/latest/tui`, which is how it surfaced: a crash screen
-reading `ENOSPC: no space left on device`. The disk was 63% full; ENOSPC from
-`watch` is never about disk.
+opencode v2's background server (`opencode2 serve --service`) registered
+**~1,020,000 inotify watches**, nearly all of this machine's 1,048,576 limit.
+Every later `watch()` on the box failed, opencode's TUI included: it crashed on
+`ENOSPC: no space left on device, watch '~/.local/state/opencode/latest/tui'`.
+ENOSPC from `watch` is never about disk.
 
-`watcher.ignore` does not save you. It is still a real v2 key and the profile
-sets it (node_modules, .git, dist, …), but it prunes what is *reported*, not the
-root that gets walked — and `$HOME` is a million directories with or without
-node_modules.
+The watches were on `/nix/store`, recursively. v2 watches the directory holding
+each *resolved* `SKILL.md`, and a single-file skill used to land as
+`skills/<name>/SKILL.md → /nix/store/<hash>-hm_<name>.md`, whose parent is the
+store itself. It also scans claude-code's skills directory, so claude-code's
+single-file skills triggered it too. `builders/skillDir.nix` turns every file or
+text skill into a one-file store directory (`writeTextDir "SKILL.md"`); the
+opencode modules and the fan-out's claude-code target both route through it.
+HM's claude-code links a derivation as a directory without IFD.
 
-So `opencode-web.service` pins `WorkingDirectory` to an empty
-`StateDirectory`, and the option carries the reason. It had been inheriting
-`$HOME` and holding zero watches purely by luck. A user shell is not something
-this flake can pin: start `opencode` inside a project, not in `$HOME`.
-Nor is the background server the TUI spawns: `serve --service` does
-`process.chdir(home)` by design, so a `WorkingDirectory` on a unit for it is
-overridden (tried and reverted). Its watches follow the directories TUIs open.
+Two wrong turns, both reverted: the server's cwd is not the cause
+(`serve --service` does `process.chdir(home)` by design, so a unit's
+`WorkingDirectory` is overridden anyway), and `watcher.ignore` does not help —
+it filters reported events, not the tree that is walked.
+(`opencode-web` briefly carried a `workingDirectory` option for this; removed.)
