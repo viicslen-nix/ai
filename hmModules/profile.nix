@@ -1,6 +1,7 @@
 {
   lib,
   config,
+  options,
   aiInputs,
   ...
 }:
@@ -55,64 +56,71 @@ in {
     enable = mkEnableOption (mdDoc "the opinionated AI harness profile — skills, commands, plugins and the credential-free MCP backends");
   };
 
-  config = mkIf cfg.enable {
-    modules.programs.claude-code = {
-      marketplaces = {
-        mempalace = "MemPalace/mempalace";
-        ponytail = "DietrichGebert/ponytail";
-        worktrunk = "max-sixty/worktrunk";
-      };
-
-      plugins = {
-        "document-skills@anthropic-agent-skills" = true;
-        "example-skills@anthropic-agent-skills" = false;
-        "laravel-simplifier@laravel" = true;
-        "mempalace@mempalace" = true;
-        "phpstorm-plugin@phpstorm-marketplace" = true;
-        "ponytail@ponytail" = true;
-        "worktrunk@worktrunk" = true;
-        "playground@claude-plugins-official" = true;
-      };
-    };
-
-    modules.programs.ai = {
-      enable = true;
-      gateway.enable = true;
-      superset.enable = true;
-      mempalace.enable = true;
-      coderabbit.enable = true;
-      openwiki.enable = true;
-      context = ../content/AGENTS.md;
-      # Order matters — last wins, and ./skills shadows both upstream layers.
-      skills = upstreamSkills // patchedSkills // mkSkillAttrSet ../content/skills;
-      commands = mkMarkdownAttrSet ../content/commands;
-
-      # Credential-free backends only. Anything needing a secret is the
-      # consumer's to add, so this flake stays runnable anywhere.
-      mcps = {
-        context7 = {
-          url = "https://mcp.context7.com/mcp";
-          oauth.enabled = true;
+  config = mkIf cfg.enable (mkMerge [
+    # `mkIf` is not enough — the module system rejects the *path* before it
+    # reads the condition, so a harness package that imports only the ai module
+    # would fail on `modules.programs.claude-code` not existing.
+    (optionalAttrs (options.modules.programs ? claude-code) {
+      modules.programs.claude-code = {
+        marketplaces = {
+          mempalace = "MemPalace/mempalace";
+          ponytail = "DietrichGebert/ponytail";
+          worktrunk = "max-sixty/worktrunk";
         };
-        gh_grep = {
-          url = "https://mcp.grep.app";
-          protocol_version = "2025-06-18";
-        };
-        linear = {
-          url = "https://mcp.linear.app/mcp";
-          oauth.enabled = true;
-        };
-        playwright = {
-          command = "npx";
-          args = [
-            "-y"
-            "@playwright/mcp@latest"
-            "--ignore-https-errors"
-            "--browser"
-            "chromium"
-          ];
+
+        plugins = {
+          "document-skills@anthropic-agent-skills" = true;
+          "example-skills@anthropic-agent-skills" = false;
+          "laravel-simplifier@laravel" = true;
+          "mempalace@mempalace" = true;
+          "phpstorm-plugin@phpstorm-marketplace" = true;
+          "ponytail@ponytail" = true;
+          "worktrunk@worktrunk" = true;
+          "playground@claude-plugins-official" = true;
         };
       };
-    };
-  };
+    })
+
+    {
+      modules.programs.ai = {
+        enable = true;
+        gateway.enable = true;
+        superset.enable = true;
+        mempalace.enable = true;
+        coderabbit.enable = true;
+        openwiki.enable = true;
+        context = ../content/AGENTS.md;
+        # Order matters — last wins, and ./skills shadows both upstream layers.
+        skills = upstreamSkills // patchedSkills // mkSkillAttrSet ../content/skills;
+        commands = mkMarkdownAttrSet ../content/commands;
+  
+        # Credential-free backends only. Anything needing a secret is the
+        # consumer's to add, so this flake stays runnable anywhere.
+        mcps = {
+          context7 = {
+            url = "https://mcp.context7.com/mcp";
+            oauth.enabled = true;
+          };
+          gh_grep = {
+            url = "https://mcp.grep.app";
+            protocol_version = "2025-06-18";
+          };
+          linear = {
+            url = "https://mcp.linear.app/mcp";
+            oauth.enabled = true;
+          };
+          playwright = {
+            command = "npx";
+            args = [
+              "-y"
+              "@playwright/mcp@latest"
+              "--ignore-https-errors"
+              "--browser"
+              "chromium"
+            ];
+          };
+        };
+      };
+    }
+  ]);
 }

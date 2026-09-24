@@ -113,3 +113,43 @@ module being imported, which is what lets a consumer take this flake with only
 one harness installed and have the rest drop out silently. The probe attribute
 differs per harness for the same reason the table does — codex has neither
 `commands` nor `agents`, so `context` is what proves its module is loaded.
+
+## `nix run <flake>#<harness>`
+
+`mkHarness` evaluates a harness's home-manager modules against a throwaway user
+(`runner`, `/tmp/runner`), harvests the `xdg.configFile` entries under that
+harness's subdirectory, and emits a wrapper that reconciles them into the real
+config dir before exec'ing the binary. The module is the single source of
+truth: a host imports it through home-manager, and the package evaluates the
+same file. `packages/opencode.nix` and `oh-my-opencode.nix` are the two
+hand-rolled ancestors of this and still exist; they seed with
+`if [ ! -f "$target" ]`, which is the behaviour `ai-sync` replaces.
+
+Each harness gets `hmModules/ai` and `hmModules/profile.nix` plus whatever else
+it needs. `profile.nix` therefore has to gate its claude-code block on
+`options.modules.programs ? claude-code` — a `mkIf` is not enough, because the
+module system rejects an unknown option *path* before it looks at the
+condition, and the opencode2 package imports no claude-code module.
+
+Config travels; credentials do not. Every harness stores its auth in its data
+directory, so a fresh machine gets the skills, agents and MCP wiring and then
+asks you to log in.
+
+## How `ai-sync` decides what it owns
+
+No manifest of past state: the target answers the question itself.
+
+- absent → symlink it
+- symlink into `/nix/store` → ours, retarget silently
+- identical content → nothing to do
+- a regular file that differs → diff and confirm
+
+That keeps the prompts to the few files someone actually changed out of the
+~70 a harness generates. `y`/`n`/`a`/`q`, and an `n` is remembered in
+`.ai-sync-keep` so a file the harness rewrites itself — Claude Code's
+`settings.json` is the standing example — is asked about once, not every launch.
+
+Two things it must never do, both covered: block when there is no TTY (it keeps
+what is there and prints one line), and consume the manifest it is reading —
+hence `read -r reply </dev/tty`, since stdin is the manifest for the whole loop.
+`AI_SYNC=force` or `=skip` bypasses the prompt entirely.

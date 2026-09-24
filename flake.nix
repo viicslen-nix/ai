@@ -82,6 +82,9 @@
           inherit system;
           overlays = [inputs.opencode.overlays.default];
         };
+        mkHarness = import ./packages/mkHarness.nix {inherit pkgs inputs;};
+
+        llm = inputs.llm-agents.packages.${system};
       in {
         formatter = pkgs.alejandra;
 
@@ -89,6 +92,68 @@
           default = pkgs.callPackage ./packages/opencode.nix {inherit inputs;};
           opencode = pkgs.callPackage ./packages/opencode.nix {inherit inputs;};
           oh-my-opencode = pkgs.callPackage ./packages/oh-my-opencode.nix {inherit inputs;};
+
+          claude = mkHarness {
+            name = "claude";
+            modules = [./hmModules/claude-code];
+            enable = {
+              programs.claude-code.enable = true;
+              modules.programs.aiProfile.enable = true;
+            };
+            package = llm.claude-code;
+            configDirVar = "CLAUDE_CONFIG_DIR";
+            subdir = "claude";
+          };
+
+          opencode2 = mkHarness {
+            name = "opencode2";
+            modules = [./hmModules/opencode2.nix];
+            enable = {
+              modules.programs.opencode2.enable = true;
+              modules.programs.aiProfile.enable = true;
+            };
+            package = llm.opencode2;
+            configDirVar = "OPENCODE_CONFIG_DIR";
+            subdir = "opencode2";
+          };
+
+          codex = mkHarness {
+            name = "codex";
+            enable = {
+              programs.codex.enable = true;
+              modules.programs.aiProfile.enable = true;
+            };
+            package = llm.codex;
+            configDirVar = "CODEX_HOME";
+            subdir = "codex";
+          };
+
+          copilot = mkHarness {
+            name = "copilot";
+            enable = {
+              programs.github-copilot-cli.enable = true;
+              modules.programs.aiProfile.enable = true;
+            };
+            package = llm.copilot-cli;
+            mainProgram = "copilot";
+            configDirVar = "COPILOT_HOME";
+            subdir = "copilot";
+          };
+
+          # No config-dir variable exists: `agy` writes ~/.gemini wherever it
+          # runs. Sync targets that path so the harness still finds the config,
+          # and accept that this one is not self-contained on a borrowed machine.
+          antigravity = mkHarness {
+            name = "antigravity";
+            enable = {
+              programs.antigravity-cli.enable = true;
+              modules.programs.aiProfile.enable = true;
+            };
+            package = llm.antigravity-cli;
+            mainProgram = "agy";
+            configDirVar = null;
+            subdir = "gemini";
+          };
         };
 
         apps = {
