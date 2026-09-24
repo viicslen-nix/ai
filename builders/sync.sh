@@ -10,25 +10,38 @@ set -uo pipefail
 
 MANIFEST="$1" # tab-separated: <relative path>\t<store path>
 CONFIG_DIR="$2"
+REL_DIR="$3" # CONFIG_DIR relative to $HOME, as home-manager names it
 KEEP_FILE="$CONFIG_DIR/.ai-sync-keep"
 
-mkdir -p "$CONFIG_DIR"
+# home-manager already manages this harness here: it keeps these files current,
+# so there is nothing to add, and taking even one of them over makes the next
+# activation fail with "would be clobbered".
+#
+# Ask the generation what it *declares*, not the directory what it holds: the
+# files are missing exactly when an activation has failed, which is when this
+# matters most, and a path home-manager only starts managing later would slip
+# past a check that looked at disk.
+stood_down() {
+  printf 'ai-sync: %s is managed by home-manager; leaving it alone\n' \
+    "$CONFIG_DIR" >&2
+  exit 0
+}
 
-# home-manager already manages this harness here: it wrote these files and keeps
-# them current, so there is nothing to add. Taking even one of them over makes
-# the next activation fail with "would be clobbered" — and so would installing a
-# path home-manager only starts managing later.
+hm_gen=$(readlink -f \
+  "${XDG_STATE_HOME:-$HOME/.local/state}/home-manager/gcroots/current-home" 2>/dev/null) || hm_gen=""
+if [ -n "$hm_gen" ] && [ -n "$REL_DIR" ] && [ -e "$hm_gen/home-files/$REL_DIR" ]; then
+  stood_down
+fi
+
+# Fallback for a home-manager that keeps no such gcroot.
 while IFS=$'\t' read -r rel _; do
   [ -n "$rel" ] || continue
   case "$(readlink "$CONFIG_DIR/$rel" 2>/dev/null)" in
-  *-home-manager-files/*)
-    printf 'ai-sync: %s is managed by home-manager; leaving it alone\n' \
-      "$CONFIG_DIR" >&2
-    exit 0
-    ;;
+  *-home-manager-files/*) stood_down ;;
   esac
 done <"$MANIFEST"
 
+mkdir -p "$CONFIG_DIR"
 touch "$KEEP_FILE" 2>/dev/null || true
 
 # `a`/`q` answered once apply to the rest of the run.

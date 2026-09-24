@@ -325,3 +325,31 @@ there already, and keeps it current.
 Recovery, if it has already happened: delete the links under the harness's
 config dir whose target is in the store but *not* under `-home-manager-files`,
 drop `.ai-sync-keep`, and activate again.
+
+### Checking the directory was not enough
+
+The first version of that check read the config directory: if any file in the
+manifest was already a `…-home-manager-files/…` symlink, stand down. It broke the
+same machine a second time, and the reason is worth keeping.
+
+Recovering from the first breakage means *deleting* the links `ai-sync` took
+over, so home-manager can put its own back. That leaves those paths empty — and
+an empty path is not a home-manager symlink, so the check saw a machine nobody
+managed and reinstalled all 63 files. The check was blind in exactly the state
+it existed to handle, because the evidence it read is the evidence a failed
+activation destroys.
+
+It now reads what home-manager *declares*:
+`$XDG_STATE_HOME/home-manager/gcroots/current-home` → `home-files/<destDir>`.
+That is the generation's own statement of what it owns, so it is true whether or
+not the files are on disk, and it covers a path home-manager only starts
+managing later. The directory scan stayed as a fallback for a home-manager that
+keeps no such gcroot.
+
+`destDir`, not `relDir`: oh-my-opencode writes the opencode module's output into
+a directory of its own, and home-manager managing `.config/opencode` says nothing
+about `.config/oh-my-opencode`.
+
+One trap when testing this: `XDG_STATE_HOME` is absolute and independent of
+`HOME`, so overriding only `HOME` points the check at your *real* generation and
+a throwaway home stands down for the wrong reason. Override both.

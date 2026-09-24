@@ -92,7 +92,7 @@
 in
   pkgs.writeShellScriptBin name ''
     config_dir="$HOME/${destDir}"
-    ${syncScript}/bin/ai-sync ${manifest} "$config_dir"
+    ${syncScript}/bin/ai-sync ${manifest} "$config_dir" ${destDir}
     ${lib.optionalString (configDirVar != null) ''export ${configDirVar}="$config_dir"''}
     exec ${lib.getExe' package mainProgram} "$@"
   ''
