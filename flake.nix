@@ -110,13 +110,29 @@
 
           opencode = mkHarness {
             name = "opencode";
-            modules = [./hmModules/opencode/v1.nix];
+            modules = [./hmModules/opencode/v2.nix];
             enable = {
               modules.programs.opencode.enable = true;
               modules.programs.aiProfile.enable = true;
             };
-            package = inputs.opencode.packages.${system}.default;
+            package = llm.opencode2;
+            mainProgram = "opencode2";
             target = "opencode";
+            configDirVar = "OPENCODE_CONFIG_DIR";
+          };
+
+          # v1, kept reachable while it is retired. `op1` is the short alias.
+          opencode1 = mkHarness {
+            name = "opencode1";
+            modules = [./hmModules/opencode/v1.nix];
+            enable = {
+              modules.programs.opencode1.enable = true;
+              modules.programs.aiProfile.enable = true;
+            };
+            package = inputs.opencode.packages.${system}.default;
+            mainProgram = "opencode";
+            aliases = ["op1"];
+            target = "opencode1";
             configDirVar = "OPENCODE_CONFIG_DIR";
           };
 
@@ -127,15 +143,15 @@
               ./hmModules/opencode/oh-my.nix
             ];
             enable = {
-              modules.programs.opencode.enable = true;
+              modules.programs.opencode1.enable = true;
               modules.programs.aiProfile.enable = true;
             };
             package = inputs.opencode.packages.${system}.default;
             mainProgram = "opencode";
-            target = "opencode";
+            target = "opencode1";
             configDirVar = "OPENCODE_CONFIG_DIR";
-            # The module writes `opencode/`; this variant keeps its own directory.
-            relDir = ".config/opencode";
+            # The v1 module writes `opencode1/`; this variant keeps its own directory.
+            relDir = ".config/opencode1";
             destDir = ".config/oh-my-opencode";
           };
 
@@ -151,17 +167,8 @@
             configDirVar = "CLAUDE_CONFIG_DIR";
           };
 
-          opencode2 = mkHarness {
-            name = "opencode2";
-            modules = [./hmModules/opencode/v2.nix];
-            enable = {
-              modules.programs.opencode2.enable = true;
-              modules.programs.aiProfile.enable = true;
-            };
-            target = "opencode2";
-            package = llm.opencode2;
-            configDirVar = "OPENCODE_CONFIG_DIR";
-          };
+          # The old name for what `opencode` now is.
+          opencode2 = config.packages.opencode;
 
           codex = mkHarness {
             name = "codex";
@@ -217,14 +224,16 @@
             (mkHmModule "ai" ./hmModules/ai)
             (mkHmModule "profile" ./hmModules/profile.nix)
             (mkHmModule "claude-code" ./hmModules/claude-code)
-            (mkHmModule "opencode" ./hmModules/opencode/v1.nix)
-            (mkHmModule "opencode2" ./hmModules/opencode/v2.nix)
+            (mkHmModule "opencode" ./hmModules/opencode/v2.nix)
+            (mkHmModule "opencode1" ./hmModules/opencode/v1.nix)
           ];
 
           ai = mkHmModule "ai" ./hmModules/ai;
           claude-code = mkHmModule "claude-code" ./hmModules/claude-code;
-          opencode = mkHmModule "opencode" ./hmModules/opencode/v1.nix;
-          opencode2 = mkHmModule "opencode2" ./hmModules/opencode/v2.nix;
+          opencode = mkHmModule "opencode" ./hmModules/opencode/v2.nix;
+          opencode1 = mkHmModule "opencode1" ./hmModules/opencode/v1.nix;
+          # The old name for what `opencode` now is.
+          opencode2 = mkHmModule "opencode" ./hmModules/opencode/v2.nix;
           opencode-service = mkHmModule "opencode-service" ./hmModules/opencode/service.nix;
           profile = mkHmModule "profile" ./hmModules/profile.nix;
         };

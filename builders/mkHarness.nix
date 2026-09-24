@@ -30,6 +30,8 @@
   # Where the harness's module writes, relative to $HOME. Not every harness is
   # XDG-aware — antigravity owns ~/.gemini outright.
   relDir ? ".config/${name}",
+  # Extra names for the same wrapper, e.g. `op1` beside `opencode1`.
+  aliases ? [],
   # Where the wrapper puts them, when that is not where the module wrote them:
   # oh-my-opencode is the opencode module pointed at a directory of its own.
   destDir ? relDir,
@@ -39,7 +41,7 @@
   # Keep in sync with `options.modules.programs.ai.targets`.
   allTargets = [
     "opencode"
-    "opencode2"
+    "opencode1"
     "claude-code"
     "antigravity-cli"
     "github-copilot-cli"
@@ -89,10 +91,20 @@
     install -Dm755 ${./sync.sh} $out/bin/ai-sync
     patchShebangs $out/bin/ai-sync
   '';
-in
-  pkgs.writeShellScriptBin name ''
+  wrapper = pkgs.writeShellScriptBin name ''
     config_dir="$HOME/${destDir}"
     ${syncScript}/bin/ai-sync ${manifest} "$config_dir" ${destDir}
     ${lib.optionalString (configDirVar != null) ''export ${configDirVar}="$config_dir"''}
     exec ${lib.getExe' package mainProgram} "$@"
-  ''
+  '';
+in
+  if aliases == []
+  then wrapper
+  else
+    pkgs.runCommand name {
+      meta.mainProgram = name;
+    } ''
+      mkdir -p $out/bin
+      ln -s ${wrapper}/bin/${name} $out/bin/${name}
+      ${lib.concatMapStringsSep "\n" (a: "ln -s ${wrapper}/bin/${name} $out/bin/${a}") aliases}
+    ''

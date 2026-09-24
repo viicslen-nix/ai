@@ -56,23 +56,23 @@ with lib; let
     else {text = content;};
 
   mkDir = subdir: attrs:
-    mapAttrs' (name: content: nameValuePair "opencode2/${subdir}/${name}.md" (mkEntry content)) attrs;
+    mapAttrs' (name: content: nameValuePair "opencode/${subdir}/${name}.md" (mkEntry content)) attrs;
 
   mkSkills = attrs:
     mapAttrs' (name: content:
       if hm.strings.isPathLike content && (!isPath content || pathIsDirectory content)
       then
-        nameValuePair "opencode2/skills/${name}" {
+        nameValuePair "opencode/skills/${name}" {
           source = content;
           recursive = true;
         }
-      else nameValuePair "opencode2/skills/${name}/SKILL.md" (mkEntry content))
+      else nameValuePair "opencode/skills/${name}/SKILL.md" (mkEntry content))
     attrs;
   mkDefaultAttrs = mapAttrs (_: mkDefault);
 
-  opinionated = config.modules.programs.opencode2;
+  opinionated = config.modules.programs.opencode;
 in {
-  options.modules.programs.opencode2 = {
+  options.modules.programs.opencode = {
     enable = mkEnableOption (mdDoc "opencode 2");
 
     phpantom.enable = mkEnableOption (mdDoc "the phpantom PHP language server");
@@ -106,7 +106,7 @@ in {
       inherit (jsonFormat) type;
       default = {};
       description = mdDoc ''
-        Written to {file}`$XDG_CONFIG_HOME/opencode2/opencode.json`. Merged last,
+        Written to {file}`$XDG_CONFIG_HOME/opencode/opencode.json`. Merged last,
         so it overrides everything the options below generate.
 
         Note the v2 key names differ from v1's: `plugins`, `agents`, and an
@@ -124,27 +124,27 @@ in {
     context = mkOption {
       type = types.either types.lines types.path;
       default = "";
-      description = mdDoc "Global instructions, written to {file}`$XDG_CONFIG_HOME/opencode2/AGENTS.md`.";
+      description = mdDoc "Global instructions, written to {file}`$XDG_CONFIG_HOME/opencode/AGENTS.md`.";
     };
 
     agents = mkOption {
       type = types.attrsOf (types.either types.lines types.path);
       default = {};
-      description = mdDoc "Agents, written to {file}`opencode2/agents/<name>.md`.";
+      description = mdDoc "Agents, written to {file}`opencode/agents/<name>.md`.";
     };
 
     commands = mkOption {
       type = types.attrsOf (types.either types.lines types.path);
       default = {};
-      description = mdDoc "Commands, written to {file}`opencode2/commands/<name>.md`.";
+      description = mdDoc "Commands, written to {file}`opencode/commands/<name>.md`.";
     };
 
     skills = mkOption {
       type = types.attrsOf (types.oneOf [types.lines types.path types.str]);
       default = {};
       description = mdDoc ''
-        Skills. A directory is linked to {file}`opencode2/skills/<name>/`;
-        anything else is written as {file}`opencode2/skills/<name>/SKILL.md`.
+        Skills. A directory is linked to {file}`opencode/skills/<name>/`;
+        anything else is written as {file}`opencode/skills/<name>/SKILL.md`.
       '';
     };
   };
@@ -171,6 +171,10 @@ in {
         settings = {
           model = mkIf (opinionated.model != null) opinionated.model;
           small_model = mkIf (opinionated.small_model != null) opinionated.small_model;
+
+          plugins = [
+            "opencode-claude-auth-v2@latest"
+          ];
 
           watcher.ignore = [
             "**/node_modules/**"
@@ -204,29 +208,29 @@ in {
     })
 
     (mkIf cfg.enable {
-    # v1 and v2 both derive their dirs from the XDG roots plus a literal
-    # "opencode", so v2 needs its own roots or the two collide. XDG_CONFIG_HOME
-    # stays untouched: moving it would send every child process opencode spawns
-    # (gh, git, nu) to an empty config dir.
-    home.packages = [
-      (pkgs.writeShellScriptBin "opencode2" ''
-        export OPENCODE_CONFIG_DIR="''${XDG_CONFIG_HOME:-$HOME/.config}/opencode2"
-        export XDG_DATA_HOME="''${XDG_DATA_HOME:-$HOME/.local/share}/opencode2"
-        export XDG_STATE_HOME="''${XDG_STATE_HOME:-$HOME/.local/state}/opencode2"
-        export XDG_CACHE_HOME="''${XDG_CACHE_HOME:-$HOME/.cache}/opencode2"
-        exec ${getExe' cfg.package "opencode2"} "$@"
-      '')
-    ];
+      # v2 is the default, so it takes the plain XDG paths and v1 is the one
+      # isolated under `opencode1`. Do not reintroduce the XDG_DATA/STATE/CACHE
+      # exports: opencode appends its own `opencode` to each, so they nested the
+      # data a level deeper (~/.local/share/opencode2/opencode).
+      #
+      # The wrapper stays for the rename — the binary this package ships is
+      # still called `opencode2`.
+      home.packages = [
+        (pkgs.writeShellScriptBin "opencode" ''
+          export OPENCODE_CONFIG_DIR="''${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
+          exec ${getExe' cfg.package "opencode2"} "$@"
+        '')
+      ];
 
     # Per file, never the directory: opencode writes service.json in here at
     # runtime and a symlinked directory would block it.
     xdg.configFile =
       {
-        "opencode2/opencode.json" = mkIf (settings != {}) {
+        "opencode/opencode.json" = mkIf (settings != {}) {
           source = jsonFormat.generate "opencode.json" ({"$schema" = "https://opencode.ai/config.json";} // settings);
         };
 
-        "opencode2/AGENTS.md" =
+        "opencode/AGENTS.md" =
           if isPath cfg.context
           then {source = cfg.context;}
           else mkIf (cfg.context != "") {text = cfg.context;};

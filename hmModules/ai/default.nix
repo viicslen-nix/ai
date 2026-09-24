@@ -75,10 +75,10 @@
     sharedSkillsType = types.either (types.attrsOf (types.oneOf [types.lines types.path types.str])) types.path;
 
     hasMcpOption = hasAttrByPath ["programs" "mcp" "servers"] options;
-    hasOpencodeOption = hasAttrByPath ["programs" "opencode" "commands"] options;
-    hasOpencodeSkillsOption = hasAttrByPath ["programs" "opencode" "skills"] options;
-    hasOpencode2Option = hasAttrByPath ["programs" "opencode2" "commands"] options;
-    hasOpencode2SkillsOption = hasAttrByPath ["programs" "opencode2" "skills"] options;
+    hasOpencode1Option = hasAttrByPath ["programs" "opencode1" "commands"] options;
+    hasOpencode1SkillsOption = hasAttrByPath ["programs" "opencode1" "skills"] options;
+    hasOpencodeOption = hasAttrByPath ["programs" "opencode2" "commands"] options;
+    hasOpencodeSkillsOption = hasAttrByPath ["programs" "opencode2" "skills"] options;
     hasClaudeCodeOption = hasAttrByPath ["programs" "claude-code" "commands"] options;
     hasClaudeCodeSkillsOption = hasAttrByPath ["programs" "claude-code" "skills"] options;
     hasAntigravityOption = hasAttrByPath ["programs" "antigravity-cli" "commands"] options;
@@ -209,13 +209,13 @@
         opencode = mkOption {
           type = types.bool;
           default = true;
-          description = mdDoc "Forward commands and agents to opencode.";
+          description = mdDoc "Forward commands and agents to opencode (v2).";
         };
 
-        opencode2 = mkOption {
+        opencode1 = mkOption {
           type = types.bool;
           default = true;
-          description = mdDoc "Forward commands and agents to opencode 2.";
+          description = mdDoc "Forward commands and agents to opencode 1.";
         };
 
         claude-code = mkOption {
@@ -264,10 +264,10 @@
         warnings =
           optional (!hasMcpOption && effectiveMcps != {})
           "`modules.programs.ai.mcps` is set, but `programs.mcp` is unavailable in this Home Manager version."
+          ++ optional (!hasOpencode1Option && cfg.targets.opencode1 && (effectiveCommands != {} || effectiveAgents != {} || hasGlobalContext || hasGlobalSkills))
+          "`modules.programs.ai.targets.opencode1` is enabled, but `programs.opencode1` is unavailable."
           ++ optional (!hasOpencodeOption && cfg.targets.opencode && (effectiveCommands != {} || effectiveAgents != {} || hasGlobalContext || hasGlobalSkills))
-          "`modules.programs.ai.targets.opencode` is enabled, but `programs.opencode` is unavailable."
-          ++ optional (!hasOpencode2Option && cfg.targets.opencode2 && (effectiveCommands != {} || effectiveAgents != {} || hasGlobalContext || hasGlobalSkills))
-          "`modules.programs.ai.targets.opencode2` is enabled, but `programs.opencode2` is unavailable."
+          "`modules.programs.ai.targets.opencode` is enabled, but `programs.opencode2` is unavailable."
           ++ optional (!hasClaudeCodeOption && cfg.targets.claude-code && (effectiveCommands != {} || effectiveAgents != {} || hasGlobalContext || hasGlobalSkills))
           "`modules.programs.ai.targets.claude-code` is enabled, but `programs.claude-code` is unavailable."
           ++ optional (!hasAntigravityOption && cfg.targets.antigravity-cli && (effectiveCommands != {} || hasGlobalContext || hasGlobalSkills))
@@ -276,9 +276,9 @@
           "`modules.programs.ai.targets.github-copilot-cli` is enabled, but `programs.github-copilot-cli` is unavailable."
           ++ optional (!hasCodexOption && cfg.targets.codex && (hasGlobalContext || hasGlobalSkills))
           "`modules.programs.ai.targets.codex` is enabled, but `programs.codex` is unavailable."
+          ++ optional (!hasOpencode1SkillsOption && cfg.targets.opencode1 && hasGlobalSkills)
+          "`modules.programs.ai.skills` is set, but `programs.opencode1.skills` is unavailable."
           ++ optional (!hasOpencodeSkillsOption && cfg.targets.opencode && hasGlobalSkills)
-          "`modules.programs.ai.skills` is set, but `programs.opencode.skills` is unavailable."
-          ++ optional (!hasOpencode2SkillsOption && cfg.targets.opencode2 && hasGlobalSkills)
           "`modules.programs.ai.skills` is set, but `programs.opencode2.skills` is unavailable."
           ++ optional (!hasClaudeCodeSkillsOption && cfg.targets.claude-code && hasGlobalSkills)
           "`modules.programs.ai.skills` is set, but `programs.claude-code.skills` is unavailable."
@@ -305,22 +305,22 @@
           );
         };
       })
-      (optionalAttrs hasOpencodeOption (mkIf cfg.targets.opencode {
-        programs.opencode = {
+      (optionalAttrs hasOpencode1Option (mkIf cfg.targets.opencode1 {
+        programs.opencode1 = {
           enableMcpIntegration = true;
           commands = mkDefaultAttrs opencodeCommands;
           agents = mkDefaultAttrs effectiveAgents;
           context = mkIf hasGlobalContext (mkDefault cfg.context);
-          skills = mkIf (hasGlobalSkills && hasOpencodeSkillsOption) (mkDefaultSkills effectiveSkills);
+          skills = mkIf (hasGlobalSkills && hasOpencode1SkillsOption) (mkDefaultSkills effectiveSkills);
         };
       }))
-      (optionalAttrs hasOpencode2Option (mkIf cfg.targets.opencode2 {
+      (optionalAttrs hasOpencodeOption (mkIf cfg.targets.opencode {
         programs.opencode2 = {
           enableMcpIntegration = true;
           commands = mkDefaultAttrs opencodeCommands;
           agents = mkDefaultAttrs effectiveAgents;
           context = mkIf hasGlobalContext (mkDefault cfg.context);
-          skills = mkIf (hasGlobalSkills && hasOpencode2SkillsOption) (mkDefaultSkills effectiveSkills);
+          skills = mkIf (hasGlobalSkills && hasOpencodeSkillsOption) (mkDefaultSkills effectiveSkills);
         };
       }))
       (optionalAttrs hasClaudeCodeOption (mkIf cfg.targets.claude-code {

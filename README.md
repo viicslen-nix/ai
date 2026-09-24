@@ -4,15 +4,16 @@ A portable AI coding-harness configuration: one set of skills, commands, agents
 and MCP servers, fanned out to every harness that can read them.
 
 Declare your context once as `modules.programs.ai`, and it reaches Claude Code,
-opencode (v1 and v2), Codex, GitHub Copilot CLI and Antigravity in whatever
-shape each one expects — Markdown commands here, a TOML block there, a
+opencode (v2, with v1 alongside), Codex, GitHub Copilot CLI and Antigravity in
+whatever shape each one expects — Markdown commands here, a TOML block there, a
 per-harness skills directory somewhere else.
 
 ## Try it without installing anything
 
 ```bash
 nix run github:viicslen-nix/ai#claude
-nix run github:viicslen-nix/ai#opencode2
+nix run github:viicslen-nix/ai#opencode
+nix run github:viicslen-nix/ai#opencode1
 nix run github:viicslen-nix/ai#codex
 nix run github:viicslen-nix/ai#copilot
 nix run github:viicslen-nix/ai#antigravity
@@ -65,7 +66,7 @@ keep your version and say so. `AI_SYNC=force` replaces without asking,
 `homeManagerModules.default` brings everything, opinions included — it turns
 `modules.programs.aiProfile` on for you, and `enable = false` turns it back off.
 The pieces are also exported separately — `ai`, `profile`, `claude-code`,
-`opencode`, `opencode2`, `opencode-service` — if you want the fan-out without
+`opencode`, `opencode1`, `opencode-service` — if you want the fan-out without
 the opinions, or one harness without the rest.
 
 ### The two layers
@@ -169,6 +170,10 @@ broke, and why the obvious shape is sometimes wrong.
   variable and reads `~/.gemini` wherever it runs, so that is what
   `nix run .#antigravity` writes to. Every other harness is pointed at its own
   directory and touches nothing else.
-- **opencode v1 and v2 are separate modules.** v2 renamed the config keys
-  (`plugin`→`plugins`, `agent`→`agents`, an agent's `prompt`→`system`). The
-  *option* names match v1 on purpose, so retiring v1 is a rename.
+- **`opencode` is v2; v1 is `opencode1`.** v2 renamed the config keys
+  (`plugin`→`plugins`, `agent`→`agents`, an agent's `prompt`→`system`), so they
+  stay separate modules. v2 owns `~/.config/opencode` and the plain XDG paths;
+  v1 is isolated under `opencode1` and ships a short `op1` alias. Note v1 no
+  longer uses home-manager's own `programs.opencode` module — that module
+  hardcodes `~/.config/opencode`, which v2 now needs — so v1 loses its `tui`,
+  `themes`, `tools` and `commands` options, stylix theming among them.

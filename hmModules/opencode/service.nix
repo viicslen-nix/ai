@@ -40,7 +40,8 @@ in {
 
       Service =
         {
-          ExecStart = "${lib.getExe nixosCfg.package} web --hostname ${nixosCfg.host} --port ${toString nixosCfg.port}";
+          # v2 calls this `serve`; v1 called it `web`.
+          ExecStart = "${lib.getExe nixosCfg.package} serve --hostname ${nixosCfg.host} --port ${toString nixosCfg.port}";
           Restart = "on-failure";
           RestartSec = "5s";
           Environment = "PATH=${config.home.profileDirectory}/bin:/run/current-system/sw/bin:/run/wrappers/bin";

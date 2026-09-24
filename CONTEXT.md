@@ -353,3 +353,50 @@ about `.config/oh-my-opencode`.
 One trap when testing this: `XDG_STATE_HOME` is absolute and independent of
 `HOME`, so overriding only `HOME` points the check at your *real* generation and
 a throwaway home stands down for the wrong reason. Override both.
+
+## `opencode` means v2 now
+
+v1 is retired to `opencode1`, with `op1` as a short alias. The swap is wider
+than a rename because of one fact: **`programs.opencode` is home-manager's own
+module**, not ours, and it hardcodes `xdg.configFile."opencode/…"` with no
+config-dir option. v1 went through it, which is what owned `~/.config/opencode`
+and put `opencode` in `home.packages`.
+
+So v2 could only take that directory if v1 stopped using that module. v1 is now
+a self-contained module of ours, modelled on v2's, writing `opencode1/` and
+wrapping the binary itself. The cost is exact and was measured by diffing the
+generated file lists: v1 loses two files, `tui.json` and `themes/stylix.json` —
+home-manager's `tui`, `themes`, `tools` and `commands` options are gone for v1,
+stylix theming among them. Nothing else changed.
+
+Second thing the swap turned up: v2's old wrapper set `XDG_DATA_HOME` and
+friends to `…/opencode2`, and opencode appends its own `opencode` to each, so
+its data was really in `~/.local/share/opencode2/opencode`. As the default it
+takes the plain paths and those three exports are gone; v1's wrapper is now the
+one nesting, in `~/.local/share/opencode1/opencode`.
+
+The option names, which are the part that is easy to get wrong:
+
+| what            | user-facing knob             | module namespace      |
+|-----------------|------------------------------|-----------------------|
+| opencode (v2)   | `modules.programs.opencode`  | `programs.opencode2`  |
+| opencode 1      | `modules.programs.opencode1` | `programs.opencode1`  |
+
+`programs.opencode` stays home-manager's and is simply unused — we cannot
+declare it a second time, which is why v2's own namespace keeps the `2`.
+
+`opencode-web` follows to v2, and v2 renamed the subcommand: it is `serve`,
+where v1 had `web`. Same `--hostname`/`--port` flags.
+
+### Plugins do not come along
+
+opencode v2 requires a plugin's default export to be `{id, effect}` or
+`{id, setup}` and has no v1 compatibility path, so a v1 plugin fails to load
+rather than degrading. Of the eleven v1 carries, none could be verified as
+working on v2 — `opencode-pty` and `@tarquinen/opencode-dcp` publish v2
+entrypoints but still declare `@opencode-ai/*` (the v1 scope) as their
+dependencies, and both have open issues about installing under v2. v2 therefore
+ships one plugin, `opencode-claude-auth-v2`, which does declare `@opencode/plugin`.
+
+`dcp.jsonc` stays with v1 for the same reason. `oh-my-opencode` is v1-only, so
+the `oh-my-opencode` package stays on v1 too.
