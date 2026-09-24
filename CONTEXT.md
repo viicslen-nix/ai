@@ -422,3 +422,6 @@ So `opencode-web.service` pins `WorkingDirectory` to an empty
 `StateDirectory`, and the option carries the reason. It had been inheriting
 `$HOME` and holding zero watches purely by luck. A user shell is not something
 this flake can pin: start `opencode` inside a project, not in `$HOME`.
+Nor is the background server the TUI spawns: `serve --service` does
+`process.chdir(home)` by design, so a `WorkingDirectory` on a unit for it is
+overridden (tried and reverted). Its watches follow the directories TUIs open.
