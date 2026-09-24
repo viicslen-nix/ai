@@ -93,3 +93,23 @@ and commands above, the claude-code marketplaces and plugins, and the four MCP
 backends that authenticate with OAuth or not at all. Anything needing a secret
 is the consumer's — `google_stitch` stays in the nixos repo with the agenix
 secret that feeds its header.
+
+## What each target can actually take
+
+The fan-out is not uniform — the harnesses expose different option surfaces,
+and a target only forwards what its module accepts:
+
+| | context | agents | commands | skills | mcp |
+| --- | --- | --- | --- | --- | --- |
+| claude-code | ✓ | ✓ | ✓ | ✓ | ✓ |
+| opencode | ✓ | ✓ | ✓ | ✓ | ✓ |
+| opencode2 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| github-copilot-cli | ✓ | ✓ | — | ✓ | ✓ |
+| antigravity-cli | ✓ | — | ✓ | ✓ | ✓ |
+| codex | ✓ | — | — | ✓ | ✓ |
+
+Each target is gated on an option *existing* (`hasAttrByPath`), never on a
+module being imported, which is what lets a consumer take this flake with only
+one harness installed and have the rest drop out silently. The probe attribute
+differs per harness for the same reason the table does — codex has neither
+`commands` nor `agents`, so `context` is what proves its module is loaded.

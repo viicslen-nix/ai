@@ -85,6 +85,9 @@
     hasAntigravitySkillsOption = hasAttrByPath ["programs" "antigravity-cli" "skills"] options;
     hasGithubCopilotCliOption = hasAttrByPath ["programs" "github-copilot-cli" "agents"] options;
     hasGithubCopilotCliSkillsOption = hasAttrByPath ["programs" "github-copilot-cli" "skills"] options;
+    # codex has no `commands` or `agents`, so `context` is what proves it exists.
+    hasCodexOption = hasAttrByPath ["programs" "codex" "context"] options;
+    hasCodexSkillsOption = hasAttrByPath ["programs" "codex" "skills"] options;
 
     effectiveMcps =
       cfg.mcps
@@ -232,6 +235,12 @@
           default = true;
           description = mdDoc "Forward agents (and MCP integration) to github copilot cli HM module.";
         };
+
+        codex = mkOption {
+          type = types.bool;
+          default = true;
+          description = mdDoc "Forward context and skills to codex. It takes no commands or agents.";
+        };
       };
 
       inherit (mempalaceIntegration.options) mempalace;
@@ -265,6 +274,8 @@
           "`modules.programs.ai.targets.antigravity-cli` is enabled, but `programs.antigravity-cli` is unavailable."
           ++ optional (!hasGithubCopilotCliOption && cfg.targets.github-copilot-cli && (effectiveAgents != {} || hasGlobalContext || hasGlobalSkills))
           "`modules.programs.ai.targets.github-copilot-cli` is enabled, but `programs.github-copilot-cli` is unavailable."
+          ++ optional (!hasCodexOption && cfg.targets.codex && (hasGlobalContext || hasGlobalSkills))
+          "`modules.programs.ai.targets.codex` is enabled, but `programs.codex` is unavailable."
           ++ optional (!hasOpencodeSkillsOption && cfg.targets.opencode && hasGlobalSkills)
           "`modules.programs.ai.skills` is set, but `programs.opencode.skills` is unavailable."
           ++ optional (!hasOpencode2SkillsOption && cfg.targets.opencode2 && hasGlobalSkills)
@@ -275,6 +286,8 @@
           "`modules.programs.ai.skills` is set, but `programs.antigravity-cli.skills` is unavailable."
           ++ optional (!hasGithubCopilotCliSkillsOption && cfg.targets.github-copilot-cli && hasGlobalSkills)
           "`modules.programs.ai.skills` is set, but `programs.github-copilot-cli.skills` is unavailable."
+          ++ optional (!hasCodexSkillsOption && cfg.targets.codex && hasGlobalSkills)
+          "`modules.programs.ai.skills` is set, but `programs.codex.skills` is unavailable."
           ++ mempalaceIntegration.warnings
           ++ coderabbitIntegration.warnings
           ++ openwikiIntegration.warnings;
@@ -334,6 +347,13 @@
           agents = mkDefaultAttrs effectiveAgents;
           context = mkIf hasGlobalContext (mkDefault cfg.context);
           skills = mkIf (hasGlobalSkills && hasGithubCopilotCliSkillsOption) (mkDefaultSkills effectiveSkills);
+        };
+      })
+      (mkIf (hasCodexOption && cfg.targets.codex) {
+        programs.codex = {
+          enableMcpIntegration = true;
+          context = mkIf hasGlobalContext (mkDefault cfg.context);
+          skills = mkIf (hasGlobalSkills && hasCodexSkillsOption) (mkDefaultSkills effectiveSkills);
         };
       })
       openwikiIntegration.config
