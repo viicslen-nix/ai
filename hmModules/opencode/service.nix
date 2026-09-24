@@ -17,6 +17,18 @@ in {
       description = "Whether to run the opencode web server for this user.";
     };
 
+    workingDirectory = mkOption {
+      type = types.str;
+      default = "%S/opencode-web";
+      description = ''
+        Working directory for the server. opencode v2 recursively watches this
+        tree, so it must not be the home directory: $HOME costs on the order of
+        a million inotify watches, which exhausts `fs.inotify.max_user_watches`
+        for every process on the machine and makes any later watch fail with
+        ENOSPC. The default is an empty state directory systemd creates.
+      '';
+    };
+
     environmentFile = mkOption {
       type = types.nullOr types.path;
       default = null;
@@ -42,6 +54,8 @@ in {
         {
           # v2 calls this `serve`; v1 called it `web`.
           ExecStart = "${lib.getExe nixosCfg.package} serve --hostname ${nixosCfg.host} --port ${toString nixosCfg.port}";
+          WorkingDirectory = cfg.workingDirectory;
+          StateDirectory = name;
           Restart = "on-failure";
           RestartSec = "5s";
           Environment = "PATH=${config.home.profileDirectory}/bin:/run/current-system/sw/bin:/run/wrappers/bin";

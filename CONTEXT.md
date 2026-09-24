@@ -400,3 +400,25 @@ ships one plugin, `opencode-claude-auth-v2`, which does declare `@opencode/plugi
 
 `dcp.jsonc` stays with v1 for the same reason. `oh-my-opencode` is v1-only, so
 the `oh-my-opencode` package stays on v1 too.
+
+## The background server must not be rooted at `$HOME`
+
+opencode v2 added a persistent background server (`serve --service`) that v1 had
+no equivalent of, and it recursively watches its working directory. Started from
+a shell sitting in `$HOME` — which is what happens the first time you run plain
+`opencode` after the v1→v2 swap — it registered **1,017,474 inotify watches**,
+97% of this machine's 1,048,576 limit. Every `watch()` on the box then failed,
+including opencode's own TUI watching
+`~/.local/state/opencode/latest/tui`, which is how it surfaced: a crash screen
+reading `ENOSPC: no space left on device`. The disk was 63% full; ENOSPC from
+`watch` is never about disk.
+
+`watcher.ignore` does not save you. It is still a real v2 key and the profile
+sets it (node_modules, .git, dist, …), but it prunes what is *reported*, not the
+root that gets walked — and `$HOME` is a million directories with or without
+node_modules.
+
+So `opencode-web.service` pins `WorkingDirectory` to an empty
+`StateDirectory`, and the option carries the reason. It had been inheriting
+`$HOME` and holding zero watches purely by luck. A user shell is not something
+this flake can pin: start `opencode` inside a project, not in `$HOME`.
