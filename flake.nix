@@ -102,7 +102,6 @@
             };
             package = llm.claude-code;
             configDirVar = "CLAUDE_CONFIG_DIR";
-            subdir = "claude";
           };
 
           opencode2 = mkHarness {
@@ -114,7 +113,6 @@
             };
             package = llm.opencode2;
             configDirVar = "OPENCODE_CONFIG_DIR";
-            subdir = "opencode2";
           };
 
           codex = mkHarness {
@@ -125,7 +123,6 @@
             };
             package = llm.codex;
             configDirVar = "CODEX_HOME";
-            subdir = "codex";
           };
 
           copilot = mkHarness {
@@ -137,12 +134,11 @@
             package = llm.copilot-cli;
             mainProgram = "copilot";
             configDirVar = "COPILOT_HOME";
-            subdir = "copilot";
           };
 
-          # No config-dir variable exists: `agy` writes ~/.gemini wherever it
-          # runs. Sync targets that path so the harness still finds the config,
-          # and accept that this one is not self-contained on a borrowed machine.
+          # No config-dir variable exists: `agy` reads ~/.gemini wherever it
+          # runs, so that is what gets synced — this one harness is not
+          # self-contained on a borrowed machine.
           antigravity = mkHarness {
             name = "antigravity";
             enable = {
@@ -152,7 +148,7 @@
             package = llm.antigravity-cli;
             mainProgram = "agy";
             configDirVar = null;
-            subdir = "gemini";
+            relDir = ".gemini";
           };
         };
 

@@ -23,8 +23,9 @@
   # Env var that points the harness at its config dir. `null` means the harness
   # has no such knob and owns a fixed path under $HOME — see antigravity.
   configDirVar ? null,
-  # Path under $XDG_CONFIG_HOME that the module writes into.
-  subdir ? name,
+  # Where the harness's module writes, relative to $HOME. Not every harness is
+  # XDG-aware — antigravity owns ~/.gemini outright.
+  relDir ? ".config/${name}",
 }: let
   inherit (pkgs) lib;
 
@@ -43,21 +44,27 @@
           home.stateVersion = "25.11";
           home.username = "runner";
           home.homeDirectory = "/tmp/runner";
-          # So the modules write to <subdir>, not ~/.<subdir>.
+          # So the modules write under .config, not ~/.<name>.
           home.preferXdgDirectories = true;
         }
       ];
   };
 
-  owned = lib.filterAttrs (n: _: lib.hasPrefix "${subdir}/" n) hmConfig.config.xdg.configFile;
+  # `home.file`, not `xdg.configFile`: a module that writes an explicit
+  # `${config.xdg.configHome}/<x>` path never appears in the latter. Upstream
+  # codex leaves a leading slash on its targets, so strip one before matching.
+  target = f: lib.removePrefix "/" f.target;
+  owned =
+    lib.filter (f: lib.hasPrefix "${relDir}/" (target f))
+    (lib.attrValues hmConfig.config.home.file);
 
   # One line per file: relative path, tab, store path. Built at eval time so
   # the wrapper does no work beyond reading it.
   manifest = pkgs.writeText "${name}-manifest" (
-    lib.concatStrings (lib.mapAttrsToList (
-        n: f: "${lib.removePrefix "${subdir}/" n}\t${f.source}\n"
-      )
-      owned)
+    lib.concatMapStrings (
+      f: "${lib.removePrefix "${relDir}/" (target f)}\t${f.source}\n"
+    )
+    owned
   );
 
   syncScript = pkgs.runCommand "ai-sync" {} ''
@@ -66,7 +73,7 @@
   '';
 in
   pkgs.writeShellScriptBin name ''
-    config_dir="''${XDG_CONFIG_HOME:-$HOME/.config}/${subdir}"
+    config_dir="$HOME/${relDir}"
     ${syncScript}/bin/ai-sync ${manifest} "$config_dir"
     ${lib.optionalString (configDirVar != null) ''export ${configDirVar}="$config_dir"''}
     exec ${lib.getExe' package mainProgram} "$@"

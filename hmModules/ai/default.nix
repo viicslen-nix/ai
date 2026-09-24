@@ -292,9 +292,11 @@
           ++ coderabbitIntegration.warnings
           ++ openwikiIntegration.warnings;
 
-        # With the gateway on, clients see only the gateway; the real servers
-        # become its backends.
-        programs.mcp = mkIf (hasMcpOption && effectiveMcps != {}) {
+      }
+      # With the gateway on, clients see only the gateway; the real servers
+      # become its backends.
+      (optionalAttrs hasMcpOption {
+        programs.mcp = mkIf (effectiveMcps != {}) {
           enable = mkDefault true;
           servers = mkDefaultAttrs (
             if cfg.gateway.enable
@@ -302,8 +304,8 @@
             else effectiveMcps
           );
         };
-      }
-      (mkIf (hasOpencodeOption && cfg.targets.opencode) {
+      })
+      (optionalAttrs hasOpencodeOption (mkIf cfg.targets.opencode {
         programs.opencode = {
           enableMcpIntegration = true;
           commands = mkDefaultAttrs opencodeCommands;
@@ -311,8 +313,8 @@
           context = mkIf hasGlobalContext (mkDefault cfg.context);
           skills = mkIf (hasGlobalSkills && hasOpencodeSkillsOption) (mkDefaultSkills effectiveSkills);
         };
-      })
-      (mkIf (hasOpencode2Option && cfg.targets.opencode2) {
+      }))
+      (optionalAttrs hasOpencode2Option (mkIf cfg.targets.opencode2 {
         programs.opencode2 = {
           enableMcpIntegration = true;
           commands = mkDefaultAttrs opencodeCommands;
@@ -320,8 +322,8 @@
           context = mkIf hasGlobalContext (mkDefault cfg.context);
           skills = mkIf (hasGlobalSkills && hasOpencode2SkillsOption) (mkDefaultSkills effectiveSkills);
         };
-      })
-      (mkIf (hasClaudeCodeOption && cfg.targets.claude-code) {
+      }))
+      (optionalAttrs hasClaudeCodeOption (mkIf cfg.targets.claude-code {
         programs.claude-code = {
           enableMcpIntegration = true;
           commands = mkDefaultAttrs claudeCodeCommands;
@@ -330,8 +332,8 @@
           skills = mkIf (hasGlobalSkills && hasClaudeCodeSkillsOption) (mkDefaultSkills effectiveSkills);
           settings = optionalAttrs (effectiveHooks != {}) {hooks = effectiveHooks;};
         };
-      })
-      (mkIf (hasAntigravityOption && cfg.targets.antigravity-cli) {
+      }))
+      (optionalAttrs hasAntigravityOption (mkIf cfg.targets.antigravity-cli {
         programs.antigravity-cli = {
           enableMcpIntegration = true;
           commands = mkDefaultAttrs antigravityCommands;
@@ -340,22 +342,22 @@
           };
           skills = mkIf (hasGlobalSkills && hasAntigravitySkillsOption) (mkDefaultSkills effectiveSkills);
         };
-      })
-      (mkIf (hasGithubCopilotCliOption && cfg.targets.github-copilot-cli) {
+      }))
+      (optionalAttrs hasGithubCopilotCliOption (mkIf cfg.targets.github-copilot-cli {
         programs.github-copilot-cli = {
           enableMcpIntegration = true;
           agents = mkDefaultAttrs effectiveAgents;
           context = mkIf hasGlobalContext (mkDefault cfg.context);
           skills = mkIf (hasGlobalSkills && hasGithubCopilotCliSkillsOption) (mkDefaultSkills effectiveSkills);
         };
-      })
-      (mkIf (hasCodexOption && cfg.targets.codex) {
+      }))
+      (optionalAttrs hasCodexOption (mkIf cfg.targets.codex {
         programs.codex = {
           enableMcpIntegration = true;
           context = mkIf hasGlobalContext (mkDefault cfg.context);
           skills = mkIf (hasGlobalSkills && hasCodexSkillsOption) (mkDefaultSkills effectiveSkills);
         };
-      })
+      }))
       openwikiIntegration.config
       mcpGatewayIntegration.config
     ]);

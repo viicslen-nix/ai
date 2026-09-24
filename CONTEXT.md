@@ -174,3 +174,42 @@ They are now split by owner, and no module keeps content next to it:
 
 The integration paths are `../../../content/…`, which is deep but says exactly
 where it lands.
+
+## The harness packages shipped empty for a while
+
+`nix run .#claude` gave you a bare claude: no skills, no commands, no MCP. It
+exited 0, printed nothing unusual, and the wrapper was there. Two separate
+faults, both silent.
+
+**`mkHarness` filtered the wrong option.** It collected
+`hmConfig.config.xdg.configFile`, but a module that writes an explicit
+`"${config.xdg.configHome}/claude/…"` path does so through `home.file` and
+never appears in `xdg.configFile` at all — the latter is an input that feeds
+the former, not a view of it. Only opencode2, whose module happens to use
+`xdg.configFile`, produced a non-empty manifest; claude, codex, copilot and
+antigravity all shipped zero files. Nothing failed, because an empty manifest
+is a valid manifest. It now filters `home.file` by `target`, and strips a
+leading `/` first — upstream codex emits `/.config/codex/…`.
+
+**Every target gate was `mkIf (hasXOption && …)`.** `mkIf false` is still a
+definition of the path, so a harness package that did not import
+`hmModules/opencode2.nix` — four of the five — failed to evaluate outright with
+`The option 'programs.opencode2' does not exist`. Every other target's module
+ships with home-manager, so only ours exposed it. The gates are
+`optionalAttrs hasXOption (mkIf cfg.targets.<t> …)` now, `programs.mcp`
+included; that block moved out of the always-on attrset to get the same
+treatment.
+
+The lesson for both: a harness package evaluates the module against a
+throwaway user with *one* harness present, which is a much harsher environment
+than any host here. Check `nix run` for each harness after touching the fan-out,
+not just a host eval — a host has every module imported and hides all of this.
+
+Two things stay as they are. The manifest destination is `$HOME/<relDir>`
+rather than an `XDG_CONFIG_HOME`-derived path, because the evaluation resolves
+`xdg.configHome` against the throwaway home anyway and `configDirVar` points
+the harness at whatever we synced — for antigravity, `~/.gemini`, which is the
+only path `agy` reads. And `nix run` on a non-opencode2 harness prints two
+warnings about `programs.opencode2` being unavailable: that is the fan-out
+correctly reporting a target with no module behind it, and it is worth more on
+a host than it costs here.
