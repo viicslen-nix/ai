@@ -39,17 +39,17 @@ in {
 
       # Configure available agents from local markdown files
       agents = {
-        ask = ../agents/ask.md;
-        debug = ../agents/debug.md;
-        review = ../agents/review.md;
-        security = ../agents/security.md;
-        documentation = ../agents/documentation.md;
-        pr-review-fixer = ../agents/pr-review-fixer.md;
+        ask = ../content/opencode/agents/ask.md;
+        debug = ../content/opencode/agents/debug.md;
+        review = ../content/opencode/agents/review.md;
+        security = ../content/opencode/agents/security.md;
+        documentation = ../content/opencode/agents/documentation.md;
+        pr-review-fixer = ../content/opencode/agents/pr-review-fixer.md;
       };
 
       # Configure available skills
       skills = {
-        browser-automation = ../skills/browser-automation.md;
+        browser-automation = ../content/opencode/skills/browser-automation.md;
       };
 
       # Main Opencode settings
@@ -108,6 +108,6 @@ in {
       };
     };
 
-    xdg.configFile."opencode/dcp.jsonc".source = ../dcp.jsonc;
+    xdg.configFile."opencode/dcp.jsonc".source = ../content/opencode/dcp.jsonc;
   };
 }

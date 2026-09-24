@@ -5,16 +5,16 @@
 }:
 with lib; {
   commands = {
-    coderabbit-review = ../commands/coderabbit/review.md;
+    coderabbit-review = ../../../content/integrations/commands/coderabbit/review.md;
   };
 
   agents = {
-    coderabbit-reviewer = ../agents/coderabbit/reviewer.md;
+    coderabbit-reviewer = ../../../content/integrations/agents/coderabbit/reviewer.md;
   };
 
   skills = {
-    coderabbit-autofix = ../skills/coderabbit/autofix/SKILL.md;
-    coderabbit-review = ../skills/coderabbit/review/SKILL.md;
+    coderabbit-autofix = ../../../content/integrations/skills/coderabbit/autofix/SKILL.md;
+    coderabbit-review = ../../../content/integrations/skills/coderabbit/review/SKILL.md;
   };
 
   options = {

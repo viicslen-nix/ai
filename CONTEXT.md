@@ -153,3 +153,24 @@ Two things it must never do, both covered: block when there is no TTY (it keeps
 what is there and prints one line), and consume the manifest it is reading —
 hence `read -r reply </dev/tty`, since stdin is the manifest for the whole loop.
 `AI_SYNC=force` or `=skip` bypasses the prompt entirely.
+
+## Everything that is markdown lives under `content/`
+
+It did not, at first — the opencode subflake's `agents/`, `skills/` and
+`dcp.jsonc` came across at the flake root, and the ai module kept its own
+`agents/`, `commands/` and `skills/` beside `default.nix`. Two directories
+named `agents`, and both were written `../agents/…`: from `hmModules/*.nix`
+that meant the opencode set, from `hmModules/ai/integrations/*.nix` it meant
+the integration set. The same path string, two destinations, depending only on
+which file you were reading.
+
+They are now split by owner, and no module keeps content next to it:
+
+- `content/skills`, `content/commands`, `content/skill-patches`,
+  `content/AGENTS.md` — the profile's payload, the portable half.
+- `content/opencode/` — the agents, skill and `dcp.jsonc` both opencode
+  modules share.
+- `content/integrations/` — what `hmModules/ai/integrations/*` reference.
+
+The integration paths are `../../../content/…`, which is deep but says exactly
+where it lands.

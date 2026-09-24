@@ -15,15 +15,15 @@ with lib; {
   };
 
   commands = {
-    mempalace-help = ../commands/mempalace/help.md;
-    mempalace-init = ../commands/mempalace/init.md;
-    mempalace-mine = ../commands/mempalace/mine.md;
-    mempalace-search = ../commands/mempalace/search.md;
-    mempalace-status = ../commands/mempalace/status.md;
+    mempalace-help = ../../../content/integrations/commands/mempalace/help.md;
+    mempalace-init = ../../../content/integrations/commands/mempalace/init.md;
+    mempalace-mine = ../../../content/integrations/commands/mempalace/mine.md;
+    mempalace-search = ../../../content/integrations/commands/mempalace/search.md;
+    mempalace-status = ../../../content/integrations/commands/mempalace/status.md;
   };
 
   skills = {
-    mempalace = ../skills/mempalace.md;
+    mempalace = ../../../content/integrations/skills/mempalace.md;
   };
 
   options = {
