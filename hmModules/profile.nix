@@ -50,6 +50,10 @@ with lib; let
       patchSkill
       "${mattpocock}/skills/engineering/implement/SKILL.md"
       (import ../content/skill-patches/implement.nix);
+    wayfinder =
+      patchSkill
+      "${mattpocock}/skills/engineering/wayfinder/SKILL.md"
+      (import ../content/skill-patches/wayfinder.nix);
   };
 in {
   options.modules.programs.aiProfile = {

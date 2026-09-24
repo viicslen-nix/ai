@@ -13,6 +13,15 @@ tool instead, so the round goes through that and the prose block is kept as the
 documented fallback. The tool's terse fields invite context-free questions, so
 the patch requires each question and option to carry its stakes.
 
+## wayfinder.nix
+
+A local delta on `github:mattpocock/skills` — `skills/engineering/wayfinder`.
+
+Upstream tickets hold only the question, so a later session resolving one can't
+say why it matters or what an answer changes. The patch adds Why now / What it
+changes / Unblocks sections to the ticket body and a prose briefing before the
+first question of a HITL ticket.
+
 The `from` anchors are plain ASCII spans that have survived every upstream
 reword so far. `patchSkill` asserts they still exist, so a reword breaks the
 build rather than silently reverting grilling to vanilla. Paragraphs in `to`
