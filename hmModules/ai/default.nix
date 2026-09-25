@@ -37,6 +37,15 @@
         isAttrs
         ;
     };
+    orcaIntegration = import ./integrations/orca.nix {
+      inherit
+        lib
+        cfg
+        pkgs
+        aiInputs
+        isAttrs
+        ;
+    };
     mcpGatewayIntegration = import ./integrations/mcp-gateway.nix {
       inherit lib cfg pkgs config;
       mcps = effectiveMcps;
@@ -110,6 +119,7 @@
         // optionalAttrs cfg.mempalace.enable mempalaceIntegration.skills
         // optionalAttrs cfg.coderabbit.enable coderabbitIntegration.skills
         // optionalAttrs cfg.openwiki.enable openwikiIntegration.skills
+        // optionalAttrs cfg.orca.enable orcaIntegration.skills
       else cfg.skills;
 
     mkDefaultAttrs = attrs: mapAttrs (_: mkDefault) attrs;
@@ -253,6 +263,7 @@
       inherit (mempalaceIntegration.options) mempalace;
       inherit (coderabbitIntegration.options) coderabbit;
       inherit (openwikiIntegration.options) openwiki;
+      inherit (orcaIntegration.options) orca;
       inherit (supersetIntegration.options) superset;
       inherit (mcpGatewayIntegration.options) gateway;
     };
@@ -297,7 +308,8 @@
           "`modules.programs.ai.skills` is set, but `programs.codex.skills` is unavailable."
           ++ mempalaceIntegration.warnings
           ++ coderabbitIntegration.warnings
-          ++ openwikiIntegration.warnings;
+          ++ openwikiIntegration.warnings
+          ++ orcaIntegration.warnings;
 
       }
       # With the gateway on, clients see only the gateway; the real servers
@@ -366,6 +378,7 @@
         };
       }))
       openwikiIntegration.config
+      orcaIntegration.config
       mcpGatewayIntegration.config
     ]);
   }

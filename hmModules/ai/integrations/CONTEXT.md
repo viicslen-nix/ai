@@ -38,3 +38,25 @@ installer would be undone every rebuild. Declaring the pair here fans it out to
 every enabled CLI for free. The CLI itself (`openwiki --init`, `visualize`) is
 an ordinary package and carries no configuration, so it needs no module of its
 own; the integration puts it on `PATH`.
+
+## `orca.nix` — vendored, not an input
+
+Orca's skills are small discovery stubs, one `SKILL.md` each. They pick the
+right executable (`orca-ide` on Linux outside an Orca terminal, never bare
+`orca`, which is the GNOME screen reader) and fetch the full guide from the
+installed app with `skills get <name>`. So all eight together are a few hundred
+lines. The repo they live in is ~870 MB of Electron, mobile and cloud code, and
+a `flake = false` input would copy all of it into the store. They are vendored
+with `just vendor-integration-skills orca stablyai/orca --all` into
+`content/integrations/skills/orca`, not into `content/skills`: that directory is
+the always-on profile set, and these stubs are dead weight without Orca
+installed. `update-skills` and `skills` find the directory from the
+`github-repo` metadata `gh` writes, so a later integration's vendored set needs
+no recipe edit.
+
+The guides are version-matched to the installed app, and the stubs only
+resolve them. A bump of the vendored stubs therefore matters less than keeping
+Orca itself current. That is why the integration installs the app too, from
+`llm-agents`: it moves with `just update-subflake ai`, and it is built in
+numtide's cache. The package also ships a `bin/orca` CLI shim, which collides
+with the GNOME screen reader's `orca` if both end up in one profile.
