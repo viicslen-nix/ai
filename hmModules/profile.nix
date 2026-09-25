@@ -57,7 +57,7 @@ with lib; let
   };
 in {
   options.modules.programs.aiProfile = {
-    enable = mkEnableOption (mdDoc "the opinionated AI harness profile — skills, commands, plugins and the credential-free MCP backends");
+    enable = mkEnableOption (mdDoc "the opinionated AI harness profile — skills, commands, plugins and the credential-free MCP backends") // {default = true;};
   };
 
   config = mkIf cfg.enable (mkMerge [

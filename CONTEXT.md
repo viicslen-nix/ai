@@ -86,9 +86,17 @@ The option merges across definitions, so a consumer adds its own skills rather
 than replacing these — which is how the nixos repo layers in the skills that
 describe infrastructure not worth publishing.
 
-## `profile` is opt-in, and holds no credentials
+## `profile` is on once imported, and holds no credentials
 
-`modules.programs.aiProfile.enable` turns on the opinionated set: the skills
+Importing the `profile` module is the opt-in: `modules.programs.aiProfile.enable`
+defaults to true, so the consumer never has to repeat itself. It used to default
+to false, and a host lost the whole set, gateway included, when the one `enable`
+line was dropped from its preset during an unrelated edit. The failure showed up
+as an `mcp-gateway.service` with no `ExecStart`, because the consumer's
+`EnvironmentFile` override was all that was left of the unit. Set it to false to
+import the module without the opinions.
+
+It turns on the opinionated set: the skills
 and commands above, the claude-code marketplaces and plugins, and the four MCP
 backends that authenticate with OAuth or not at all. Anything needing a secret
 is the consumer's — `google_stitch` stays in the nixos repo with the agenix
