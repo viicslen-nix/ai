@@ -439,6 +439,16 @@ single-line store path ending in `.md` is copied into a one-file directory by a
 `runCommand`, which is resolved at build time. Skill directories never end in
 `.md`, so nothing that was already a directory is caught.
 
+The fix itself broke activation on every host that had the old generation.
+`skills/openwiki` was a link to the file, and the new entry is `recursive`, so
+home-manager tried `mkdir skills/openwiki` through that link and
+`home-manager-<user>.service` failed with `File exists`. The orphan cleanup does not
+remove it, because the path is still declared. `builders/staleSkillLinks.nix`
+runs before `linkGeneration` in both opencode modules. It removes a skill
+entry only when that entry is a link into a `-home-manager-files` store path
+and does not resolve to a directory, so the same file→directory change on any
+skill cannot wedge activation again.
+
 Two wrong turns, both reverted: the server's cwd is not the cause
 (`serve --service` does `process.chdir(home)` by design, so a unit's
 `WorkingDirectory` is overridden anyway), and `watcher.ignore` does not help —

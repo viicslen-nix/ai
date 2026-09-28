@@ -234,6 +234,9 @@ in {
         '')
       ];
 
+      home.activation.opencode1StaleSkillLinks =
+        import ../../builders/staleSkillLinks.nix {inherit lib;} "${config.xdg.configHome}/opencode1/skills";
+
       # Per file, never the directory: opencode writes service.json in here at
       # runtime and a symlinked directory would block it.
       xdg.configFile =
