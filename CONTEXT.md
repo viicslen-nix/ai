@@ -426,6 +426,19 @@ text skill into a one-file store directory (`writeTextDir "SKILL.md"`); the
 opencode modules and the fan-out's claude-code target both route through it.
 HM's claude-code links a derivation as a directory without IFD.
 
+### A store-path *string* to a file slipped through
+
+An integration that points into a package — openwiki's
+`"${package}/…/integrations/openwiki/SKILL.md"` — is a string, not a Nix path,
+so it matched neither the path branch nor the text branch: `isPathLike` passed
+it through as if it were a directory. opencode then linked `skills/openwiki`
+straight to the file, a skill with no `SKILL.md` inside it, and with the store
+as its parent. Asking "file or directory?" of such a string means building the
+package during evaluation (IFD), so `skillDir` decides by shape instead: a
+single-line store path ending in `.md` is copied into a one-file directory by a
+`runCommand`, which is resolved at build time. Skill directories never end in
+`.md`, so nothing that was already a directory is caught.
+
 Two wrong turns, both reverted: the server's cwd is not the cause
 (`serve --service` does `process.chdir(home)` by design, so a unit's
 `WorkingDirectory` is overridden anyway), and `watcher.ignore` does not help —
