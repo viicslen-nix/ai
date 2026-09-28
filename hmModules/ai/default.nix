@@ -46,6 +46,15 @@
         isAttrs
         ;
     };
+    browserHarnessIntegration = import ./integrations/browser-harness.nix {
+      inherit
+        lib
+        cfg
+        pkgs
+        aiInputs
+        isAttrs
+        ;
+    };
     mcpGatewayIntegration = import ./integrations/mcp-gateway.nix {
       inherit lib cfg pkgs config;
       mcps = effectiveMcps;
@@ -101,7 +110,8 @@
     effectiveMcps =
       cfg.mcps
       // optionalAttrs cfg.mempalace.enable mempalaceIntegration.mcps
-      // optionalAttrs cfg.openwiki.enable openwikiIntegration.mcps;
+      // optionalAttrs cfg.openwiki.enable openwikiIntegration.mcps
+      // optionalAttrs cfg.browser-harness.enable browserHarnessIntegration.mcps;
     effectiveCommands =
       cfg.commands
       // optionalAttrs cfg.mempalace.enable mempalaceIntegration.commands
@@ -120,6 +130,7 @@
         // optionalAttrs cfg.coderabbit.enable coderabbitIntegration.skills
         // optionalAttrs cfg.openwiki.enable openwikiIntegration.skills
         // optionalAttrs cfg.orca.enable orcaIntegration.skills
+        // optionalAttrs cfg.browser-harness.enable browserHarnessIntegration.skills
       else cfg.skills;
 
     mkDefaultAttrs = attrs: mapAttrs (_: mkDefault) attrs;
@@ -264,6 +275,7 @@
       inherit (coderabbitIntegration.options) coderabbit;
       inherit (openwikiIntegration.options) openwiki;
       inherit (orcaIntegration.options) orca;
+      inherit (browserHarnessIntegration.options) browser-harness;
       inherit (supersetIntegration.options) superset;
       inherit (mcpGatewayIntegration.options) gateway;
     };
@@ -309,7 +321,8 @@
           ++ mempalaceIntegration.warnings
           ++ coderabbitIntegration.warnings
           ++ openwikiIntegration.warnings
-          ++ orcaIntegration.warnings;
+          ++ orcaIntegration.warnings
+          ++ browserHarnessIntegration.warnings;
 
       }
       # With the gateway on, clients see only the gateway; the real servers
@@ -379,6 +392,7 @@
       }))
       openwikiIntegration.config
       orcaIntegration.config
+      browserHarnessIntegration.config
       mcpGatewayIntegration.config
     ]);
   }

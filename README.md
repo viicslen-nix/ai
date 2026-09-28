@@ -50,7 +50,7 @@ keep your version and say so. `AI_SYNC=force` replaces without asking,
   playwright. Anything needing a secret is yours to add — see
   [Credentials](#credentials).
 - **Integrations** that wire themselves up when enabled: mcp-gateway,
-  mempalace, coderabbit, openwiki, superset.
+  mempalace, coderabbit, openwiki, superset, orca, browser-harness.
 
 ## Use it as a flake input
 

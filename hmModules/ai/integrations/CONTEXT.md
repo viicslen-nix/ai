@@ -39,6 +39,17 @@ every enabled CLI for free. The CLI itself (`openwiki --init`, `visualize`) is
 an ordinary package and carries no configuration, so it needs no module of its
 own; the integration puts it on `PATH`.
 
+## `browser-harness.nix` — the skill ships inside the wheel
+
+browser-harness packages its `SKILL.md` as package data, so the skill comes
+from the installed package, not from a vendored copy or an input, and moves
+with a bump of the package.
+
+The MCP server runs on nixpkgs' `mcp` 1.x. Upstream pins `mcp==2.1.1`, which
+needs `httpx2` and `mcp-types` that nixpkgs lacks, but the server uses only
+the FastMCP surface 2.x renamed to `MCPServer`, so the package rewrites that
+one import.
+
 ## `orca.nix` — vendored, not an input
 
 Orca's skills are small discovery stubs, one `SKILL.md` each. They pick the
