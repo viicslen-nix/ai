@@ -50,6 +50,29 @@ needs `httpx2` and `mcp-types` that nixpkgs lacks, but the server uses only
 the FastMCP surface 2.x renamed to `MCPServer`, so the package rewrites that
 one import.
 
+## `jev.nix` — a key-file wrapper, not an `EnvironmentFile`
+
+jev is a CLI you launch, not a unit, so there is no systemd to hand an
+`EnvironmentFile` to. The wrapper reads bare-key files at launch, which is
+also what lets the text model reuse an existing bare key (CLIProxyAPI's)
+instead of a second dotenv secret. `XDG_RUNTIME_DIR` is re-derived because
+home-manager's agenix paths are the literal `${XDG_RUNTIME_DIR}/agenix/<n>`.
+
+The text helper is any OpenAI-compatible endpoint. jev sends
+`response_format: json_object` but rejects anything that is not bare JSON, and
+not every provider enforces the former: through CLIProxyAPI, Claude Haiku 4.5
+answers inside a ```` ```json ```` fence and every `TYPE_TEXT` fails, while
+Sonnet 4.6 answers bare in about a second.
+
+The TypeSafe skill (`typesafe-ai`) rides with the jev integration because it
+is only useful where TypeSafe is. It comes from the `typesafe-skills` input, which
+is `flake = false`. Upstream ships it as a Claude plugin and through
+`npx skills add`, but both install imperatively. The plugin route writes
+`settings.json`, and the npx route writes into skill directories home-manager
+owns, so the next activation drops either one. The repo is a few KB and holds
+only skills, which makes an input the right shape. `just update-subflake ai`
+bumps it.
+
 ## `orca.nix` — vendored, not an input
 
 Orca's skills are small discovery stubs, one `SKILL.md` each. They pick the

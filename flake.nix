@@ -32,6 +32,11 @@
       flake = false;
     };
 
+    typesafe-skills = {
+      url = "github:typesafe-ai/skills";
+      flake = false;
+    };
+
     flake-parts.url = "github:hercules-ci/flake-parts";
 
     # home-manager is reached through omniflake's index rather than carrying an

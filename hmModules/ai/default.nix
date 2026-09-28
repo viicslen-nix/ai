@@ -55,6 +55,15 @@
         isAttrs
         ;
     };
+    jevIntegration = import ./integrations/jev.nix {
+      inherit
+        lib
+        cfg
+        pkgs
+        aiInputs
+        isAttrs
+        ;
+    };
     mcpGatewayIntegration = import ./integrations/mcp-gateway.nix {
       inherit lib cfg pkgs config;
       mcps = effectiveMcps;
@@ -131,6 +140,7 @@
         // optionalAttrs cfg.openwiki.enable openwikiIntegration.skills
         // optionalAttrs cfg.orca.enable orcaIntegration.skills
         // optionalAttrs cfg.browser-harness.enable browserHarnessIntegration.skills
+        // optionalAttrs cfg.jev.enable jevIntegration.skills
       else cfg.skills;
 
     mkDefaultAttrs = attrs: mapAttrs (_: mkDefault) attrs;
@@ -276,6 +286,7 @@
       inherit (openwikiIntegration.options) openwiki;
       inherit (orcaIntegration.options) orca;
       inherit (browserHarnessIntegration.options) browser-harness;
+      inherit (jevIntegration.options) jev;
       inherit (supersetIntegration.options) superset;
       inherit (mcpGatewayIntegration.options) gateway;
     };
@@ -322,7 +333,8 @@
           ++ coderabbitIntegration.warnings
           ++ openwikiIntegration.warnings
           ++ orcaIntegration.warnings
-          ++ browserHarnessIntegration.warnings;
+          ++ browserHarnessIntegration.warnings
+          ++ jevIntegration.warnings;
 
       }
       # With the gateway on, clients see only the gateway; the real servers
@@ -393,6 +405,7 @@
       openwikiIntegration.config
       orcaIntegration.config
       browserHarnessIntegration.config
+      jevIntegration.config
       mcpGatewayIntegration.config
     ]);
   }
