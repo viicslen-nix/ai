@@ -110,6 +110,16 @@ in {
       '';
     };
 
+    cli = mkOption {
+      inherit (jsonFormat) type;
+      default = {};
+      description = mdDoc ''
+        Terminal settings (keybinds, theme, …), passed as
+        `OPENCODE_CLI_CONFIG_CONTENT` and merged over {file}`opencode/cli.json`,
+        which stays writable for the TUI's own settings dialog.
+      '';
+    };
+
     plugins = mkOption {
       type = types.listOf types.str;
       default = [];
@@ -164,6 +174,13 @@ in {
           browser-automation = ../../content/opencode/skills/browser-automation.md;
         };
 
+        cli.keybinds = mkDefaultAttrs {
+          "input.line.home" = "ctrl+a,home";
+          "input.line.end" = "ctrl+e,end";
+          "session.first" = "ctrl+g,alt+home";
+          "session.last" = "ctrl+alt+g";
+        };
+
         settings = {
           model = mkIf (opinionated.model != null) opinionated.model;
           small_model = mkIf (opinionated.small_model != null) opinionated.small_model;
@@ -214,6 +231,7 @@ in {
       home.packages = [
         (pkgs.writeShellScriptBin "opencode" ''
           export OPENCODE_CONFIG_DIR="''${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
+          ${optionalString (cfg.cli != {}) "export OPENCODE_CLI_CONFIG_CONTENT=${escapeShellArg (builtins.toJSON cfg.cli)}"}
           exec ${getExe' cfg.package "opencode2"} "$@"
         '')
       ];
