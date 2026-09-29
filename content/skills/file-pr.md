@@ -33,7 +33,8 @@ description: use when the user asks to file, open, or create a PR
 When the change affects anything a user sees — UI, layout, styling, copy, rendered output — add a `## Screenshots` section with **before and after** images of each affected view.
 
 - Capture "before" from the base branch (e.g. a worktree at `origin/main`) and "after" from this branch, at the same viewport, data, and state so the two are directly comparable. Pair them side by side in a table with `Before` / `After` columns.
-- Use whatever browser or screenshot tooling is available. If the app cannot be run locally, say so in the section instead of omitting it silently.
+- Use whatever browser or screenshot tooling is available.
+- The table holds real images only. Never fill a cell with a text description of what a screenshot would show. If a side cannot be captured, leave that side out; if neither can, drop the table and write one sentence saying why there are no screenshots.
 - Crop to the part that changed; add a full-page shot only when placement or context matters.
 - When the change is a multi-step flow or an interaction a still cannot show (animations, drag and drop, transitions, loading states), also record a short video or GIF of the "after" flow — at your discretion, and only when it communicates something the screenshots do not. Keep it short and trimmed to the flow.
 - `gh` cannot upload attachments to a PR. Commit the assets to a dedicated branch (not the PR branch) and embed them by URL, e.g. `https://github.com/<owner>/<repo>/raw/<assets-branch>/<file>`. GIFs render inline; a video linked this way shows as a link, so prefer a GIF for short flows. If none of this works, tell the user which files to drag into the PR description.
