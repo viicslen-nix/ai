@@ -50,6 +50,16 @@ needs `httpx2` and `mcp-types` that nixpkgs lacks, but the server uses only
 the FastMCP surface 2.x renamed to `MCPServer`, so the package rewrites that
 one import.
 
+`headless` exists because browser-harness never launches a browser: it
+attaches to one that is already running, found through `BU_CDP_URL` or
+a `DevToolsActivePort` file in a known profile. So headless means a separate
+Chromium, run as a user service. It uses its own `--user-data-dir`, which is
+also what avoids Chrome's "Allow remote debugging?" prompt, shown only on
+the default profile. Only the MCP backend is pointed at it; the shell CLI and
+jev keep your real, logged-in browser. The backend also sets `BU_NAME`.
+Otherwise it would share the `default` daemon, and whichever side started that
+daemon first would decide which browser both sides drive.
+
 ## `jev.nix` — a key-file wrapper, not an `EnvironmentFile`
 
 jev is a CLI you launch, not a unit, so there is no systemd to hand an
