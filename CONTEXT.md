@@ -374,8 +374,9 @@ So v2 could only take that directory if v1 stopped using that module. v1 is now
 a self-contained module of ours, modelled on v2's, writing `opencode1/` and
 wrapping the binary itself. The cost is exact and was measured by diffing the
 generated file lists: v1 loses two files, `tui.json` and `themes/stylix.json` —
-home-manager's `tui`, `themes`, `tools` and `commands` options are gone for v1,
-stylix theming among them. Nothing else changed.
+home-manager's `tui`, `themes` and `tools` options are gone for v1, stylix
+theming among them. `commands`, `agents` and `skills` are the module's own
+options and still work. Nothing else changed.
 
 The option names, which are the part that is easy to get wrong:
 
