@@ -178,6 +178,10 @@ in {
   };
 
   config = mkMerge [
+    {
+      modules.programs.opencode.enable = mkIf (isDefault && config.programs.opencode1.enable or false) (mkDefault true);
+    }
+
     (mkIf opinionated.enable {
       programs.opencode2 = {
         enable = true;

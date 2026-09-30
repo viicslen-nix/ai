@@ -163,6 +163,10 @@ in {
   };
 
   config = mkMerge [
+    {
+      modules.programs.opencode1.enable = mkIf (isDefault && config.programs.opencode2.enable or false) (mkDefault true);
+    }
+
     (mkIf opinionated.enable {
       programs.opencode1 = {
         enable = true;

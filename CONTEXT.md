@@ -400,6 +400,12 @@ them, so both are isolated now and the default is only a pointer:
 | config | `~/.config/opencode1` | `~/.config/opencode2` |
 | data/state/cache | `~/.local/{share,state}/opencode1/opencode`, `~/.cache/opencode1/opencode` | same with `opencode2` |
 
+Enabling either version enables the default one too (`mkDefault`), so a host
+that turns on v1 alone still gets the v2 its `opencode` command points at. The
+option's own default follows the imports: a harness package such as
+`oh-my-opencode` evaluates the v1 module alone, and a fixed `"v2"` there failed
+the "default is not enabled" assertion on every host that installs it.
+
 The default version adds an `opencode` link to its launcher and an out-of-store
 `~/.config/opencode → opencode<N>` symlink. That symlink is not what either
 version reads — each launcher sets `OPENCODE_CONFIG_DIR` itself — it is for
