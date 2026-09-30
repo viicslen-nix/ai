@@ -56,18 +56,33 @@ with lib; let
     else {text = content;};
 
   mkDir = subdir: attrs:
-    mapAttrs' (name: content: nameValuePair "opencode/${subdir}/${name}.md" (mkEntry content)) attrs;
+    mapAttrs' (name: content: nameValuePair "opencode2/${subdir}/${name}.md" (mkEntry content)) attrs;
 
   skillDir = import ../../builders/skillDir.nix {inherit lib pkgs;};
   mkSkills = mapAttrs' (name: content:
-    nameValuePair "opencode/skills/${name}" {
+    nameValuePair "opencode2/skills/${name}" {
       source = skillDir name content;
       recursive = true;
     });
   mkDefaultAttrs = mapAttrs (_: mkDefault);
 
   opinionated = config.modules.programs.opencode;
+  isDefault = opinionated.default == "v2";
+
+  # opencode appends its own `opencode` to each XDG root, so the data lands in
+  # ~/.local/share/opencode2/opencode. XDG_CONFIG_HOME stays untouched: moving
+  # it would send every child process (gh, git, nu) to an empty config dir.
+  wrapper = pkgs.writeShellScriptBin "opencode2" ''
+    export OPENCODE_CONFIG_DIR="''${XDG_CONFIG_HOME:-$HOME/.config}/opencode2"
+    export XDG_DATA_HOME="''${XDG_DATA_HOME:-$HOME/.local/share}/opencode2"
+    export XDG_STATE_HOME="''${XDG_STATE_HOME:-$HOME/.local/state}/opencode2"
+    export XDG_CACHE_HOME="''${XDG_CACHE_HOME:-$HOME/.cache}/opencode2"
+    ${optionalString (cfg.cli != {}) "export OPENCODE_CLI_CONFIG_CONTENT=${escapeShellArg (builtins.toJSON cfg.cli)}"}
+    exec ${getExe' cfg.package "opencode2"} "$@"
+  '';
 in {
+  imports = [./default-version.nix];
+
   options.modules.programs.opencode = {
     enable = mkEnableOption (mdDoc "opencode 2");
 
@@ -96,13 +111,20 @@ in {
       description = mdDoc "The opencode 2 package, before the XDG-isolation wrapper is applied.";
     };
 
+    finalPackage = mkOption {
+      type = types.package;
+      readOnly = true;
+      default = wrapper;
+      description = mdDoc "The `opencode2` launcher: {option}`package` pointed at its isolated config and data.";
+    };
+
     enableMcpIntegration = mkEnableOption (mdDoc "forwarding `programs.mcp.servers` into the generated config");
 
     settings = mkOption {
       inherit (jsonFormat) type;
       default = {};
       description = mdDoc ''
-        Written to {file}`$XDG_CONFIG_HOME/opencode/opencode.json`. Merged last,
+        Written to {file}`$XDG_CONFIG_HOME/opencode2/opencode.json`. Merged last,
         so it overrides everything the options below generate.
 
         Note the v2 key names differ from v1's: `plugins`, `agents`, and an
@@ -115,7 +137,7 @@ in {
       default = {};
       description = mdDoc ''
         Terminal settings (keybinds, theme, …), passed as
-        `OPENCODE_CLI_CONFIG_CONTENT` and merged over {file}`opencode/cli.json`,
+        `OPENCODE_CLI_CONFIG_CONTENT` and merged over {file}`opencode2/cli.json`,
         which stays writable for the TUI's own settings dialog.
       '';
     };
@@ -130,27 +152,27 @@ in {
     context = mkOption {
       type = types.either types.lines types.path;
       default = "";
-      description = mdDoc "Global instructions, written to {file}`$XDG_CONFIG_HOME/opencode/AGENTS.md`.";
+      description = mdDoc "Global instructions, written to {file}`$XDG_CONFIG_HOME/opencode2/AGENTS.md`.";
     };
 
     agents = mkOption {
       type = types.attrsOf (types.either types.lines types.path);
       default = {};
-      description = mdDoc "Agents, written to {file}`opencode/agents/<name>.md`.";
+      description = mdDoc "Agents, written to {file}`opencode2/agents/<name>.md`.";
     };
 
     commands = mkOption {
       type = types.attrsOf (types.either types.lines types.path);
       default = {};
-      description = mdDoc "Commands, written to {file}`opencode/commands/<name>.md`.";
+      description = mdDoc "Commands, written to {file}`opencode2/commands/<name>.md`.";
     };
 
     skills = mkOption {
       type = types.attrsOf (types.oneOf [types.lines types.path types.str]);
       default = {};
       description = mdDoc ''
-        Skills. A directory is linked to {file}`opencode/skills/<name>/`;
-        anything else is written as {file}`opencode/skills/<name>/SKILL.md`.
+        Skills. A directory is linked to {file}`opencode2/skills/<name>/`;
+        anything else is written as {file}`opencode2/skills/<name>/SKILL.md`.
       '';
     };
   };
@@ -221,40 +243,71 @@ in {
     })
 
     (mkIf cfg.enable {
-      # v2 is the default, so it takes the plain XDG paths and v1 is the one
-      # isolated under `opencode1`. Do not reintroduce the XDG_DATA/STATE/CACHE
-      # exports: opencode appends its own `opencode` to each, so they nested the
-      # data a level deeper (~/.local/share/opencode2/opencode).
-      #
-      # The wrapper stays for the rename — the binary this package ships is
-      # still called `opencode2`.
-      home.packages = [
-        (pkgs.writeShellScriptBin "opencode" ''
-          export OPENCODE_CONFIG_DIR="''${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
-          ${optionalString (cfg.cli != {}) "export OPENCODE_CLI_CONFIG_CONTENT=${escapeShellArg (builtins.toJSON cfg.cli)}"}
-          exec ${getExe' cfg.package "opencode2"} "$@"
-        '')
-      ];
+      home.packages =
+        [wrapper]
+        ++ optional isDefault (pkgs.runCommand "opencode-default" {} ''
+          mkdir -p $out/bin
+          ln -s ${wrapper}/bin/opencode2 $out/bin/opencode
+        '');
+
+      # One-time move off the plain paths v2 used while it owned them outright.
+      # Must run before checkLinkTargets, which refuses to replace the real
+      # ~/.config/opencode directory with the default-version symlink.
+      home.activation.opencode2Migrate = hm.dag.entryBefore ["checkLinkTargets"] ''
+        opencodeMoves=()
+        opencodeQueueMove() {
+          local src=$1 dst=$2
+          [[ -d $src && ! -L $src ]] || return 0
+          if [[ -e $dst ]]; then
+            warnEcho "opencode: leaving $src in place, $dst already exists"
+            return 0
+          fi
+          opencodeMoves+=("$src" "$dst")
+        }
+        opencodeQueueMove "${config.xdg.configHome}/opencode" "${config.xdg.configHome}/opencode2"
+        opencodeQueueMove "${config.xdg.dataHome}/opencode" "${config.xdg.dataHome}/opencode2/opencode"
+        opencodeQueueMove "${config.xdg.stateHome}/opencode" "${config.xdg.stateHome}/opencode2/opencode"
+        opencodeQueueMove "${config.xdg.cacheHome}/opencode" "${config.xdg.cacheHome}/opencode2/opencode"
+
+        if (( ''${#opencodeMoves[@]} )); then
+          # Background `serve` daemons respawn on demand; a live TUI would lose its database.
+          opencodeTuis=$(${pkgs.procps}/bin/pgrep -u "$(id -u)" -af 'bin/\.?opencode2' | grep -v ' serve' || true)
+          if [[ -n $opencodeTuis ]]; then
+            errorEcho "opencode: close every opencode session before this switch, its data is moving:"
+            errorEcho "$opencodeTuis"
+            exit 1
+          fi
+          run ${pkgs.procps}/bin/pkill -u "$(id -u)" -f 'bin/\.?opencode2.* serve' || true
+          for ((i = 0; i < ''${#opencodeMoves[@]}; i += 2)); do
+            run mkdir -p "$(dirname "''${opencodeMoves[i + 1]}")"
+            run mv $VERBOSE_ARG "''${opencodeMoves[i]}" "''${opencodeMoves[i + 1]}"
+          done
+        fi
+      '';
 
       home.activation.opencodeStaleSkillLinks =
-        import ../../builders/staleSkillLinks.nix {inherit lib;} "${config.xdg.configHome}/opencode/skills";
+        import ../../builders/staleSkillLinks.nix {inherit lib;} "${config.xdg.configHome}/opencode2/skills";
 
-    # Per file, never the directory: opencode writes service.json in here at
-    # runtime and a symlinked directory would block it.
-    xdg.configFile =
-      {
-        "opencode/opencode.json" = mkIf (settings != {}) {
-          source = jsonFormat.generate "opencode.json" ({"$schema" = "https://opencode.ai/config.json";} // settings);
-        };
+      # Per file, never the directory: opencode writes service.json in here at
+      # runtime and a store-linked directory would block it.
+      xdg.configFile =
+        {
+          "opencode2/opencode.json" = mkIf (settings != {}) {
+            source = jsonFormat.generate "opencode.json" ({"$schema" = "https://opencode.ai/config.json";} // settings);
+          };
 
-        "opencode/AGENTS.md" =
-          if isPath cfg.context
-          then {source = cfg.context;}
-          else mkIf (cfg.context != "") {text = cfg.context;};
-      }
-      // mkDir "agents" cfg.agents
-      // mkDir "commands" cfg.commands
-      // mkSkills cfg.skills;
+          "opencode2/AGENTS.md" =
+            if isPath cfg.context
+            then {source = cfg.context;}
+            else mkIf (cfg.context != "") {text = cfg.context;};
+
+          "opencode" = mkIf isDefault {
+            source = config.lib.file.mkOutOfStoreSymlink "${config.xdg.configHome}/opencode2";
+          };
+        }
+        // mkDir "agents" cfg.agents
+        // mkDir "commands" cfg.commands
+        // mkSkills cfg.skills;
     })
   ];
 }

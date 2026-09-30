@@ -69,7 +69,21 @@ with lib; let
   mkDefaultAttrs = mapAttrs (_: mkDefault);
 
   opinionated = config.modules.programs.opencode1;
+  isDefault = config.modules.programs.opencode.default == "v1";
+
+  # opencode appends its own `opencode` to each XDG root, so the data lands in
+  # ~/.local/share/opencode1/opencode. XDG_CONFIG_HOME stays untouched: moving
+  # it would send every child process (gh, git, nu) to an empty config dir.
+  wrapper = pkgs.writeShellScriptBin "opencode1" ''
+    export OPENCODE_CONFIG_DIR="''${XDG_CONFIG_HOME:-$HOME/.config}/opencode1"
+    export XDG_DATA_HOME="''${XDG_DATA_HOME:-$HOME/.local/share}/opencode1"
+    export XDG_STATE_HOME="''${XDG_STATE_HOME:-$HOME/.local/state}/opencode1"
+    export XDG_CACHE_HOME="''${XDG_CACHE_HOME:-$HOME/.cache}/opencode1"
+    exec ${getExe' cfg.package "opencode"} "$@"
+  '';
 in {
+  imports = [./default-version.nix];
+
   options.modules.programs.opencode1 = {
     enable = mkEnableOption (mdDoc "opencode 1");
 
@@ -96,6 +110,13 @@ in {
       default = aiInputs.opencode.packages.${pkgs.stdenv.hostPlatform.system}.default;
       defaultText = literalExpression "aiInputs.opencode.packages.\${system}.default";
       description = mdDoc "The opencode 1 package, before the XDG-isolation wrapper is applied.";
+    };
+
+    finalPackage = mkOption {
+      type = types.package;
+      readOnly = true;
+      default = wrapper;
+      description = mdDoc "The `opencode1` launcher: {option}`package` pointed at its isolated config and data.";
     };
 
     enableMcpIntegration = mkEnableOption (mdDoc "forwarding `programs.mcp.servers` into the generated config");
@@ -213,24 +234,12 @@ in {
     })
 
     (mkIf cfg.enable {
-      # v1 is the retired one, so it is the side that moves off the plain
-      # `opencode` paths. opencode appends its own `opencode` to each XDG root,
-      # so its data lands a level deeper, in ~/.local/share/opencode1/opencode.
-      # XDG_CONFIG_HOME stays untouched: moving it would send every child
-      # process opencode spawns (gh, git, nu) to an empty config dir.
-      home.packages = let
-        wrapper = pkgs.writeShellScriptBin "opencode1" ''
-          export OPENCODE_CONFIG_DIR="''${XDG_CONFIG_HOME:-$HOME/.config}/opencode1"
-          export XDG_DATA_HOME="''${XDG_DATA_HOME:-$HOME/.local/share}/opencode1"
-          export XDG_STATE_HOME="''${XDG_STATE_HOME:-$HOME/.local/state}/opencode1"
-          export XDG_CACHE_HOME="''${XDG_CACHE_HOME:-$HOME/.cache}/opencode1"
-          exec ${getExe' cfg.package "opencode"} "$@"
-        '';
-      in [
+      home.packages = [
         wrapper
         (pkgs.runCommand "op1" {} ''
           mkdir -p $out/bin
           ln -s ${wrapper}/bin/opencode1 $out/bin/op1
+          ${optionalString isDefault "ln -s ${wrapper}/bin/opencode1 $out/bin/opencode"}
         '')
       ];
 
@@ -251,6 +260,10 @@ in {
             else mkIf (cfg.context != "") {text = cfg.context;};
 
           "opencode1/dcp.jsonc".source = ../../content/opencode/dcp.jsonc;
+
+          "opencode" = mkIf isDefault {
+            source = config.lib.file.mkOutOfStoreSymlink "${config.xdg.configHome}/opencode1";
+          };
         }
         // mkDir "agents" cfg.agents
         // mkDir "commands" cfg.commands

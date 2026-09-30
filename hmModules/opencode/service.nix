@@ -9,6 +9,19 @@ with lib; let
 
   nixosCfg = osConfig.modules.services.${name};
   cfg = config.services.${name};
+
+  version = config.modules.programs.opencode.default or "v2";
+  launcher =
+    if nixosCfg.package != null
+    then getExe nixosCfg.package
+    else if version == "v1"
+    then getExe' config.programs.opencode1.finalPackage "opencode1"
+    else getExe' config.programs.opencode2.finalPackage "opencode2";
+  # v2 renamed `web` to `serve`; the flags are the same.
+  subcommand =
+    if version == "v1"
+    then "web"
+    else "serve";
 in {
   options.services.${name} = {
     enable = mkOption {
@@ -40,8 +53,7 @@ in {
 
       Service =
         {
-          # v2 calls this `serve`; v1 called it `web`.
-          ExecStart = "${lib.getExe nixosCfg.package} serve --hostname ${nixosCfg.host} --port ${toString nixosCfg.port}";
+          ExecStart = "${launcher} ${subcommand} --hostname ${nixosCfg.host} --port ${toString nixosCfg.port}";
           Restart = "on-failure";
           RestartSec = "5s";
           Environment = "PATH=${config.home.profileDirectory}/bin:/run/current-system/sw/bin:/run/wrappers/bin";

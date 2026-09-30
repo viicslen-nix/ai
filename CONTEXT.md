@@ -377,12 +377,6 @@ generated file lists: v1 loses two files, `tui.json` and `themes/stylix.json` �
 home-manager's `tui`, `themes`, `tools` and `commands` options are gone for v1,
 stylix theming among them. Nothing else changed.
 
-Second thing the swap turned up: v2's old wrapper set `XDG_DATA_HOME` and
-friends to `…/opencode2`, and opencode appends its own `opencode` to each, so
-its data was really in `~/.local/share/opencode2/opencode`. As the default it
-takes the plain paths and those three exports are gone; v1's wrapper is now the
-one nesting, in `~/.local/share/opencode1/opencode`.
-
 The option names, which are the part that is easy to get wrong:
 
 | what            | user-facing knob             | module namespace      |
@@ -393,8 +387,46 @@ The option names, which are the part that is easy to get wrong:
 `programs.opencode` stays home-manager's and is simply unused — we cannot
 declare it a second time, which is why v2's own namespace keeps the `2`.
 
-`opencode-web` follows to v2, and v2 renamed the subcommand: it is `serve`,
-where v1 had `web`. Same `--hostname`/`--port` flags.
+### Neither version owns `opencode`; `modules.programs.opencode.default` picks
+
+v2 briefly took the plain paths (`~/.config/opencode`, `~/.local/share/opencode`)
+while v1 was isolated. That made switching the default a fight over who owns
+them, so both are isolated now and the default is only a pointer:
+
+| | v1 | v2 |
+|---|---|---|
+| launcher | `opencode1` (`op1`) | `opencode2` |
+| config | `~/.config/opencode1` | `~/.config/opencode2` |
+| data/state/cache | `~/.local/{share,state}/opencode1/opencode`, `~/.cache/opencode1/opencode` | same with `opencode2` |
+
+The default version adds an `opencode` link to its launcher and an out-of-store
+`~/.config/opencode → opencode<N>` symlink. That symlink is not what either
+version reads — each launcher sets `OPENCODE_CONFIG_DIR` itself — it is for
+tools that write into `~/.config/opencode` without going through a launcher.
+Data needs no such symlink: only the launchers know where it is, and everything
+that should reach it (`opencode-web` included) goes through one.
+
+The data nesting is a cost, not an accident. opencode appends its own `opencode`
+to each XDG root, so isolating data means exporting `XDG_DATA_HOME` and friends
+from the launcher, and every child process opencode spawns inherits them.
+`XDG_CONFIG_HOME` is deliberately left alone for that reason: moving it would
+send gh, git and nu to an empty config dir.
+
+v2's activation moves its old plain paths into the `opencode2` layout once
+(`opencode2Migrate`, before `checkLinkTargets`, which would otherwise refuse to
+replace the real `~/.config/opencode` with the symlink). It fails the
+activation rather than move a database under a running TUI, but kills v2's
+background `serve --service` daemons, which respawn on demand. A destination
+that already exists is left alone with a warning, never merged.
+
+`opencode-web` runs the default's launcher, so it gets that version's config and
+data, and picks the subcommand to match: v2 renamed `web` to `serve`, with the
+same `--hostname`/`--port` flags. Its NixOS `package` option is now only an
+override.
+
+The `nix run .#opencode` package writes `~/.config/opencode2` too, so on a host
+that also runs this module it stands down instead of writing into whichever
+version the `~/.config/opencode` symlink points at.
 
 ### Plugins do not come along
 

@@ -1,8 +1,6 @@
 {
   lib,
-  pkgs,
   config,
-  aiInputs,
   options,
   ...
 }:
@@ -17,10 +15,14 @@ in {
     enable = mkEnableOption "opencode web server service";
 
     package = mkOption {
-      type = types.package;
-      default = aiInputs.self.packages.${pkgs.stdenv.hostPlatform.system}.opencode;
-      defaultText = literalExpression "aiInputs.self.packages.\${system}.opencode";
-      description = "The opencode package to use for the web service.";
+      type = types.nullOr types.package;
+      default = null;
+      description = ''
+        Overrides the opencode the web service runs. By default each user's
+        {option}`modules.programs.opencode.default` launcher runs it, with that
+        version's own config and data. An override still receives that version's
+        subcommand (`serve` for v2, `web` for v1).
+      '';
     };
 
     port = mkOption {

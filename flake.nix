@@ -124,6 +124,7 @@
             mainProgram = "opencode2";
             target = "opencode";
             configDirVar = "OPENCODE_CONFIG_DIR";
+            relDir = ".config/opencode2";
           };
 
           # v1, kept reachable while it is retired. `op1` is the short alias.
