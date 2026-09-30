@@ -55,10 +55,25 @@ attaches to one that is already running, found through `BU_CDP_URL` or
 a `DevToolsActivePort` file in a known profile. So headless means a separate
 Chromium, run as a user service. It uses its own `--user-data-dir`, which is
 also what avoids Chrome's "Allow remote debugging?" prompt, shown only on
-the default profile. Only the MCP backend is pointed at it; the shell CLI and
-jev keep your real, logged-in browser. The backend also sets `BU_NAME`.
-Otherwise it would share the `default` daemon, and whichever side started that
-daemon first would decide which browser both sides drive.
+the default profile. The MCP backend and jev are pointed at it; the shell CLI
+keeps your real browser. Each sets its own `BU_NAME`. Otherwise they would
+share the `default` daemon, and whichever side started that daemon first would
+decide which browser every side drives.
+
+The headless profile starts logged out of everything, so `browser-harness-profile`
+(the "Browser Harness Profile" desktop entry) opens that same profile in a
+window to log in or manage sessions. Chromium locks a profile to one instance,
+so the launcher stops the service, runs the window on the service's own port,
+and restarts the service when the window closes. Agents keep working while it
+is open — their daemons reconnect to the same port. A second launch only adds a
+window, guarded by a `flock`: letting it stop and restart the service would
+start a headless Chromium against the locked profile and burn the unit's
+restart limit. The launcher's profile path restates the unit's `%D`, so the two
+must move together. Verified end to end: a jev run completed through the
+window, and closing it brought the headless service back.
+
+Nothing finds your real Vivaldi anyway: browser-harness only probes Chrome,
+Chromium and Edge profile directories for `DevToolsActivePort`.
 
 ## `jev.nix` — a key-file wrapper, not an `EnvironmentFile`
 
@@ -68,11 +83,17 @@ also what lets the text model reuse an existing bare key (CLIProxyAPI's)
 instead of a second dotenv secret. `XDG_RUNTIME_DIR` is re-derived because
 home-manager's agenix paths are the literal `${XDG_RUNTIME_DIR}/agenix/<n>`.
 
+With browser-harness's `headless` enabled, the wrapper points jev at it
+(`BU_CDP_URL`, `BU_NAME=jev`, both overridable from the environment). The real
+browser was the default before, and it meant a visible Chrome launch plus an
+"Allow" click on every fresh connection; jev's inspector shows its own
+screenshots, so it needs no window.
+
 The text helper is any OpenAI-compatible endpoint. jev sends
 `response_format: json_object` but rejects anything that is not bare JSON, and
 not every provider enforces the former: through CLIProxyAPI, Claude Haiku 4.5
 answers inside a ```` ```json ```` fence and every `TYPE_TEXT` fails, while
-Sonnet 4.6 answers bare in about a second.
+Sonnet 4.6 and 5.5 answer bare in about a second.
 
 The TypeSafe skill (`typesafe-ai`) rides with the jev integration because it
 is only useful where TypeSafe is. It comes from the `typesafe-skills` input, which

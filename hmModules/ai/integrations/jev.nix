@@ -7,6 +7,8 @@
 }:
 with lib; let
   jev = cfg.jev;
+  bh = cfg.browser-harness;
+  useHeadless = bh.enable && bh.headless.enable;
 
   readKey = var: file:
     optionalString (file != null) ''
@@ -24,6 +26,11 @@ with lib; let
     export TEXT_MODEL="''${TEXT_MODEL:-${jev.textModel.model}}"
     ${optionalString (jev.textModel.reasoning != null) ''
       export TEXT_MODEL_REASONING="''${TEXT_MODEL_REASONING:-${jev.textModel.reasoning}}"
+    ''}
+    ${optionalString useHeadless ''
+      export BU_CDP_URL="''${BU_CDP_URL:-http://127.0.0.1:${toString bh.headless.port}}"
+      # Its own daemon: sharing the MCP backend's would tie jev to whichever started it.
+      export BU_NAME="''${BU_NAME:-jev}"
     ''}
     exec ${getExe jev.package} "$@"
   '';
