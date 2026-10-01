@@ -78,6 +78,8 @@ with lib; let
     export XDG_STATE_HOME="''${XDG_STATE_HOME:-$HOME/.local/state}/opencode2"
     export XDG_CACHE_HOME="''${XDG_CACHE_HOME:-$HOME/.cache}/opencode2"
     ${optionalString (cfg.cli != {}) "export OPENCODE_CLI_CONFIG_CONTENT=${escapeShellArg (builtins.toJSON cfg.cli)}"}
+    # libopentui dlopens these for clipboard reads; without them image paste silently does nothing.
+    export LD_LIBRARY_PATH="${makeLibraryPath [pkgs.wayland pkgs.libxcb]}''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
     exec ${getExe' cfg.package "opencode2"} "$@"
   '';
 in {

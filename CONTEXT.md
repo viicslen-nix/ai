@@ -493,3 +493,13 @@ Two wrong turns, both reverted: the server's cwd is not the cause
 `WorkingDirectory` is overridden anyway), and `watcher.ignore` does not help —
 it filters reported events, not the tree that is walked.
 (`opencode-web` briefly carried a `workingDirectory` option for this; removed.)
+
+## opencode v2 needs `libwayland-client` on `LD_LIBRARY_PATH`
+
+v2's TUI reads the clipboard natively: OpenTUI's `libopentui.so` speaks
+`ext-data-control-v1` and `dlopen`s `libwayland-client.so.0`, falling back to
+`libxcb.so.1`. The upstream `llm-agents` package wraps only `PATH`, so under
+Nix both lookups miss and `ctrl+v` with an image on the clipboard does nothing,
+with no error at all. `strace -e openat` during the keypress shows both
+`ENOENT`s. The `opencode2` launcher prepends both libraries.
+v1 is unaffected because it shells out to `wl-paste` instead.
