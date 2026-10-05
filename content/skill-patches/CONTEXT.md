@@ -13,6 +13,15 @@ tool instead, so the round goes through that and the prose block is kept as the
 documented fallback. The tool's terse fields invite context-free questions, so
 the patch requires each question and option to carry its stakes.
 
+## implement.nix
+
+A local delta on `github:mattpocock/skills` — the `implement` skill.
+
+Upstream ends every task with a run of the full test suite. Here that suite is
+too slow to run once per task, and CI runs it on every push anyway, so the
+patch keeps the regular typechecks and single-file test runs and drops the
+end-of-task full run.
+
 ## wayfinder.nix
 
 A local delta on `github:mattpocock/skills` — `skills/engineering/wayfinder`.

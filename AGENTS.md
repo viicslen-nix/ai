@@ -55,7 +55,8 @@ Its options live at `modules.programs.ai.integrations.<name>`, read as
 `cfg.integrations.<name>`; the old `modules.programs.ai.<name>` path is a
 renamed alias that warns.
 
-- **It installs its own CLI**: a `package` option (default from `aiInputs`)
+- **It installs its own CLI**: a `package` option (default from `aiInputs`, or
+  nixpkgs when it is packaged there, like mcp-gateway)
   and `home.packages = [package]` under `enable && installPackage`.
   `installPackage` is generated for every integration that declares `package`;
   it only gates `PATH`, so MCP commands, services and wrappers keep using the
