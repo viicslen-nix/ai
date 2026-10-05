@@ -12,7 +12,7 @@ with lib; let
     if pin == null
     then null
     else head pin;
-  packageTag = "cli-v${cfg.superset.package.version}";
+  packageTag = "cli-v${cfg.integrations.superset.package.version}";
 
   # A no-op outside a Superset workspace ($SUPERSET_HOME_DIR unset), so the same
   # one-liner is safe on every event Superset wants to observe.
@@ -57,11 +57,11 @@ in {
     };
   };
 
-  config = mkIf cfg.superset.enable {
-    home.packages = [cfg.superset.package];
+  config = mkIf (cfg.integrations.superset.enable && cfg.integrations.superset.installPackage) {
+    home.packages = [cfg.integrations.superset.package];
   };
 
   warnings =
-    optional (cfg.superset.enable && vendoredTag != null && vendoredTag != packageTag)
-    "`modules.programs.ai.superset`: the vendored skills are pinned to ${vendoredTag} but the CLI is ${packageTag}. Re-vendor with `just vendor-integration-skills superset superset-sh/superset plugins/superset/skills/<name> --pin ${packageTag}` in flakes/ai.";
+    optional (cfg.integrations.superset.enable && vendoredTag != null && vendoredTag != packageTag)
+    "`modules.programs.ai.integrations.superset`: the vendored skills are pinned to ${vendoredTag} but the CLI is ${packageTag}. Re-vendor with `just vendor-integration-skills superset superset-sh/superset plugins/superset/skills/<name> --pin ${packageTag}` in flakes/ai.";
 }

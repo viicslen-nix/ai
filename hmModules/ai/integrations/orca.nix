@@ -21,11 +21,11 @@ with lib; {
     };
   };
 
-  config = mkIf cfg.orca.enable {
-    home.packages = [cfg.orca.package];
+  config = mkIf (cfg.integrations.orca.enable && cfg.integrations.orca.installPackage) {
+    home.packages = [cfg.integrations.orca.package];
   };
 
   warnings =
-    optional (cfg.orca.enable && !(isAttrs cfg.skills))
-    "`modules.programs.ai.orca.enable` adds the Orca skills only when `modules.programs.ai.skills` is an attribute set.";
+    optional (cfg.integrations.orca.enable && !(isAttrs cfg.skills))
+    "`modules.programs.ai.integrations.orca.enable` adds the Orca skills only when `modules.programs.ai.skills` is an attribute set.";
 }

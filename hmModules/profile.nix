@@ -101,11 +101,12 @@ in {
     {
       modules.programs.ai = {
         enable = true;
-        gateway.enable = true;
-        superset.enable = true;
-        mempalace.enable = true;
-        coderabbit.enable = true;
-        openwiki.enable = true;
+        integrations = {
+          gateway.enable = true;
+          mempalace.enable = true;
+          coderabbit.enable = true;
+          openwiki.enable = true;
+        };
         context = ../content/AGENTS.md;
         # Order matters — last wins, and ./skills shadows both upstream layers.
         skills = upstreamSkills // patchedSkills // localSkills;

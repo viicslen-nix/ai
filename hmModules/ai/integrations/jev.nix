@@ -6,8 +6,8 @@
   isAttrs,
 }:
 with lib; let
-  jev = cfg.jev;
-  bh = cfg.browser-harness;
+  jev = cfg.integrations.jev;
+  bh = cfg.integrations.browser-harness;
   useHeadless = bh.enable && bh.headless.enable;
 
   readKey = var: file:
@@ -84,11 +84,11 @@ in {
     };
   };
 
-  config = mkIf jev.enable {
+  config = mkIf (jev.enable && jev.installPackage) {
     home.packages = [wrapper];
   };
 
   warnings =
     optional (jev.enable && !(isAttrs cfg.skills))
-    "`modules.programs.ai.jev.enable` adds the TypeSafe skill only when `modules.programs.ai.skills` is an attribute set.";
+    "`modules.programs.ai.integrations.jev.enable` adds the TypeSafe skill only when `modules.programs.ai.skills` is an attribute set.";
 }

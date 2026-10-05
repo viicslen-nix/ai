@@ -35,7 +35,7 @@ plugin, every other harness gets flat `<ns>-<short>`; `short` drops an upstream
 `<ns>-` prefix.
 
 - **Integrations** with more than one skill are namespaced by default
-  (`<integration>.skillNamespace`); single-skill ones stay flat.
+  (`integrations.<name>.skillNamespace`); single-skill ones stay flat.
 - **Vendored collections** get `skillNamespaces.<ns>` only when they drive a
   tool or integration (stitch: yes; effective-html, plan-it, mattpocock: no).
   Select members by their recorded `github-repo` (`fromRepo` in `profile.nix`),
@@ -51,13 +51,23 @@ plugin, every other harness gets flat `<ns>-<short>`; `short` drops an upstream
 
 An integration is a file in `hmModules/ai/integrations/` returning any of
 `skills`, `commands`, `agents`, `mcps`, `hooks`, `options`, `config`, `warnings`.
+Its options live at `modules.programs.ai.integrations.<name>`, read as
+`cfg.integrations.<name>`; the old `modules.programs.ai.<name>` path is a
+renamed alias that warns.
 
-- **It installs its own CLI**: a `<name>.package` option (default from
-  `aiInputs`) and `home.packages = [cfg.<name>.package]` under its `enable`.
-  MCP commands read that same option. Consumers never install it separately.
+- **It installs its own CLI**: a `package` option (default from `aiInputs`)
+  and `home.packages = [package]` under `enable && installPackage`.
+  `installPackage` is generated for every integration that declares `package`;
+  it only gates `PATH`, so MCP commands, services and wrappers keep using the
+  package by store path. Consumers never install it separately.
+- **Every integration is opt-in**, GUI apps (`orca`) included: the consumer's
+  preset or host enables it. A GUI *piece* of an enabled integration
+  (browser-harness's profile launcher) defaults to
+  `osConfig.services.graphical-desktop.enable`. `default.nix` reads `osConfig`
+  as `args.osConfig or {}` and passes it on: standalone `nix run` evals have none.
 - **Wire a new one** into `hmModules/ai/default.nix`: the `import`, and each of
-  `skillIntegrations` (if it has skills), the `config` list, and the `warnings`
-  list that applies.
+  `skillIntegrations` (if it has skills, else `allIntegrations`), the `config`
+  list, and the `warnings` list that applies.
 - **Vendor its skills** into `content/integrations/skills/<name>` with
   `just vendor-integration-skills <name> <owner/repo> …`, pinned to the release
   that matches its package (Superset: `--pin cli-v<version>`), and warn when the

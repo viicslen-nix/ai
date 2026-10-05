@@ -10,7 +10,7 @@ with lib; {
   # `programs.mcp.servers`, so it is routed like every other MCP server.
   mcps = {
     mempalace = {
-      command = lib.getExe' cfg.mempalace.package "mempalace-mcp";
+      command = lib.getExe' cfg.integrations.mempalace.package "mempalace-mcp";
     };
   };
 
@@ -39,11 +39,11 @@ with lib; {
     };
   };
 
-  config = mkIf cfg.mempalace.enable {
-    home.packages = [cfg.mempalace.package];
+  config = mkIf (cfg.integrations.mempalace.enable && cfg.integrations.mempalace.installPackage) {
+    home.packages = [cfg.integrations.mempalace.package];
   };
 
   warnings =
-    optional (cfg.mempalace.enable && !(isAttrs cfg.skills))
-    "`modules.programs.ai.mempalace.enable` adds a default mempalace skill only when `modules.programs.ai.skills` is an attribute set.";
+    optional (cfg.integrations.mempalace.enable && !(isAttrs cfg.skills))
+    "`modules.programs.ai.integrations.mempalace.enable` adds a default mempalace skill only when `modules.programs.ai.skills` is an attribute set.";
 }

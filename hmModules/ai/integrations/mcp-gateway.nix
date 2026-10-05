@@ -6,7 +6,7 @@
   mcps,
 }:
 with lib; let
-  gcfg = cfg.gateway;
+  gcfg = cfg.integrations.gateway;
   yaml = pkgs.formats.yaml {};
 
   # Keep the computed attrs first in the merge, or a per-server value can't win.
@@ -73,12 +73,12 @@ in {
       assertion =
         !gcfg.enable
         || all (server: all isString (attrValues (server.env or {}))) (attrValues mcps);
-      message = "`modules.programs.ai.gateway.enable` cannot route an MCP server that uses `env.<name>.file`; mcp-gateway only accepts literal environment values.";
+      message = "`modules.programs.ai.integrations.gateway.enable` cannot route an MCP server that uses `env.<name>.file`; mcp-gateway only accepts literal environment values.";
     }
   ];
 
   config = mkIf gcfg.enable {
-    home.packages = [gcfg.package];
+    home.packages = optional gcfg.installPackage gcfg.package;
 
     xdg.configFile."mcp-gateway/gateway.yaml".source = configFile;
 

@@ -5,10 +5,12 @@
   options,
   aiInputs,
   ...
-}:
+} @ args:
   with lib; let
     name = "ai";
     namespace = "programs";
+    # A special arg only under the NixOS module; a standalone (`nix run`) eval has none.
+    osConfig = args.osConfig or {};
 
     cfg = config.modules.${namespace}.${name};
     mempalaceIntegration = import ./integrations/mempalace.nix {
@@ -54,6 +56,7 @@
         cfg
         pkgs
         aiInputs
+        osConfig
         isAttrs
         ;
     };
@@ -120,18 +123,18 @@
 
     effectiveMcps =
       cfg.mcps
-      // optionalAttrs cfg.mempalace.enable mempalaceIntegration.mcps
-      // optionalAttrs cfg.openwiki.enable openwikiIntegration.mcps
-      // optionalAttrs cfg.browser-harness.enable browserHarnessIntegration.mcps;
+      // optionalAttrs cfg.integrations.mempalace.enable mempalaceIntegration.mcps
+      // optionalAttrs cfg.integrations.openwiki.enable openwikiIntegration.mcps
+      // optionalAttrs cfg.integrations.browser-harness.enable browserHarnessIntegration.mcps;
     effectiveCommands =
       cfg.commands
-      // optionalAttrs cfg.mempalace.enable mempalaceIntegration.commands
-      // optionalAttrs cfg.coderabbit.enable coderabbitIntegration.commands;
-    effectiveAgents = cfg.agents // optionalAttrs cfg.coderabbit.enable coderabbitIntegration.agents;
+      // optionalAttrs cfg.integrations.mempalace.enable mempalaceIntegration.commands
+      // optionalAttrs cfg.integrations.coderabbit.enable coderabbitIntegration.commands;
+    effectiveAgents = cfg.agents // optionalAttrs cfg.integrations.coderabbit.enable coderabbitIntegration.agents;
     # Hook lists for the same event come from several integrations, so they are
     # concatenated per event rather than overwritten.
     effectiveHooks = zipAttrsWith (_: concatLists) (
-      optional cfg.superset.enable supersetIntegration.hooks
+      optional cfg.integrations.superset.enable supersetIntegration.hooks
     );
     skillIntegrations = {
       mempalace = mempalaceIntegration;
@@ -142,9 +145,10 @@
       jev = jevIntegration;
       superset = supersetIntegration;
     };
+    allIntegrations = skillIntegrations // {gateway = mcpGatewayIntegration;};
     renameSkills = import ../../builders/renameSkills.nix {inherit lib pkgs;};
     skillDir = import ../../builders/skillDir.nix {inherit lib pkgs;};
-    enabledIntegrations = filter (integration: cfg.${integration}.enable) (attrNames skillIntegrations);
+    enabledIntegrations = filter (integration: cfg.integrations.${integration}.enable) (attrNames skillIntegrations);
 
     # A namespaced skill is `<ns>:<short>` in Claude Code (a plugin) and
     # `<ns>-<short>` everywhere else; `short` drops an upstream `<ns>-` prefix.
@@ -159,7 +163,7 @@
       plugin = "${ns}:${short}";
     };
     integrationMembers = concatMap (integration: let
-      ns = cfg.${integration}.skillNamespace;
+      ns = cfg.integrations.${integration}.skillNamespace;
     in
       optionals (ns != "") (mapAttrsToList (member ns) skillIntegrations.${integration}.skills))
     enabledIntegrations;
@@ -170,7 +174,7 @@
     plainSkills =
       removeAttrs cfg.skills (map (m: m.orig) collectionMembers)
       // mergeAttrsList (map (integration:
-        optionalAttrs (cfg.${integration}.skillNamespace == "") skillIntegrations.${integration}.skills)
+        optionalAttrs (cfg.integrations.${integration}.skillNamespace == "") skillIntegrations.${integration}.skills)
       enabledIntegrations);
     memberClashes = filter (key: plainSkills ? ${key}) (attrNames members);
 
@@ -287,6 +291,12 @@
     claudeCodeCommands = mapAttrs toMarkdownCommand normalizedCommands;
     antigravityCommands = mapAttrs toAntigravityCommand normalizedCommands;
   in {
+    imports = map (integration:
+      mkRenamedOptionModule
+      ["modules" namespace name integration]
+      ["modules" namespace name "integrations" integration])
+    (attrNames allIntegrations);
+
     options.modules.${namespace}.${name} = {
       enable = mkEnableOption (mdDoc "shared AI tooling") // {default = true;};
 
@@ -389,25 +399,34 @@
         };
       };
 
-      inherit (mcpGatewayIntegration.options) gateway;
-    }
-    // mapAttrs (integration: module:
-      module.options.${integration}
-      // {
-        skillNamespace = mkOption {
-          type = types.str;
-          default =
-            if length (attrNames module.skills) > 1
-            then integration
-            else "";
-          defaultText = literalExpression ''"${integration}" if it ships more than one skill, else ""'';
-          description = mdDoc ''
-            Namespace for this integration's skills, as `modules.programs.ai.skillNamespaces`
-            does for a collection. `""` installs them under their upstream names.
-          '';
-        };
-      })
-    skillIntegrations;
+      integrations = mapAttrs (integration: module:
+        module.options.${integration}
+        // optionalAttrs (module.options.${integration} ? package) {
+          installPackage = mkOption {
+            type = types.bool;
+            default = true;
+            description = mdDoc ''
+              Put `package` on `PATH`. Off, the integration still runs it by store
+              path (MCP server, service, wrappers); only the CLI is not installed.
+            '';
+          };
+        }
+        // optionalAttrs (module ? skills) {
+          skillNamespace = mkOption {
+            type = types.str;
+            default =
+              if length (attrNames module.skills) > 1
+              then integration
+              else "";
+            defaultText = literalExpression ''"${integration}" if it ships more than one skill, else ""'';
+            description = mdDoc ''
+              Namespace for this integration's skills, as `modules.programs.ai.skillNamespaces`
+              does for a collection. `""` installs them under their upstream names.
+            '';
+          };
+        })
+      allIntegrations;
+    };
 
     config = mkIf cfg.enable (mkMerge [
       {
@@ -462,7 +481,7 @@
         programs.mcp = mkIf (effectiveMcps != {}) {
           enable = mkDefault true;
           servers = mkDefaultAttrs (
-            if cfg.gateway.enable
+            if cfg.integrations.gateway.enable
             then mcpGatewayIntegration.servers
             else effectiveMcps
           );

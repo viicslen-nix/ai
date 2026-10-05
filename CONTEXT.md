@@ -123,7 +123,7 @@ reading one at eval time would be IFD.
 ### Namespaces follow Claude Code plugins
 
 A namespace — an integration with more than one skill
-(`<integration>.skillNamespace`), or a collection listed in `skillNamespaces` —
+(`integrations.<name>.skillNamespace`), or a collection listed in `skillNamespaces` —
 is laid out the way Claude Code namespaces a plugin. Claude gets one plugin per
 namespace, so Orca's `orca-cli` is `/orca:cli` and stitch's `stitch-loop` is
 `/stitch:loop`: the short name drops an upstream `<ns>-` prefix. Every other

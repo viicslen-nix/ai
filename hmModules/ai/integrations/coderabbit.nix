@@ -32,11 +32,11 @@ with lib; {
     };
   };
 
-  config = mkIf cfg.coderabbit.enable {
-    home.packages = [cfg.coderabbit.package];
+  config = mkIf (cfg.integrations.coderabbit.enable && cfg.integrations.coderabbit.installPackage) {
+    home.packages = [cfg.integrations.coderabbit.package];
   };
 
   warnings =
-    optional (cfg.coderabbit.enable && !(isAttrs cfg.skills))
-    "`modules.programs.ai.coderabbit.enable` adds default CodeRabbit skills only when `modules.programs.ai.skills` is an attribute set.";
+    optional (cfg.integrations.coderabbit.enable && !(isAttrs cfg.skills))
+    "`modules.programs.ai.integrations.coderabbit.enable` adds default CodeRabbit skills only when `modules.programs.ai.skills` is an attribute set.";
 }

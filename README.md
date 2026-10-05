@@ -51,8 +51,9 @@ keep your version and say so. `AI_SYNC=force` replaces without asking,
   [Credentials](#credentials).
 - **Integrations** that wire themselves up when enabled: mcp-gateway,
   mempalace, coderabbit, openwiki, superset, orca, browser-harness, jev. Each
-  installs its own CLI (overridable as `<integration>.package`), so a host
-  never has to add it separately.
+  installs its own CLI (`integrations.<name>.package`, or
+  `installPackage = false` to leave it off `PATH`), so a host never has to add
+  it separately.
 
 ## Use it as a flake input
 
@@ -90,8 +91,15 @@ modules.programs.ai = {
   skillRenames.code-review = "review-code";
   # A namespace is a plugin in Claude Code (`/stitch:loop`) and a flat
   # prefix elsewhere (`stitch-loop`). Integrations with several skills get
-  # one by default; `orca.skillNamespace = ""` keeps upstream names.
+  # one by default; `integrations.orca.skillNamespace = ""` keeps upstream names.
   skillNamespaces.stitch = ["code-to-design" "stitch-loop"];
+
+  # Every integration lives under `integrations`. `installPackage = false`
+  # keeps its CLI off PATH; MCP servers and services still run it by store path.
+  integrations.mempalace = {
+    enable = true;
+    installPackage = false;
+  };
 };
 ```
 

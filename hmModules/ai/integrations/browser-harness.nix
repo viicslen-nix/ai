@@ -3,10 +3,11 @@
   cfg,
   pkgs,
   aiInputs,
+  osConfig,
   isAttrs,
 }:
 with lib; let
-  bh = cfg.browser-harness;
+  bh = cfg.integrations.browser-harness;
   package = bh.package;
   headless = bh.headless;
   cdpUrl = "http://127.0.0.1:${toString headless.port}";
@@ -77,12 +78,19 @@ in {
           default = 9333;
           description = mdDoc "Remote-debugging port of the headless browser, bound to loopback.";
         };
+
+        profileLauncher.enable =
+          mkEnableOption (mdDoc "`browser-harness-profile` and its desktop entry, which open the headless profile in a window to log in")
+          // {
+            default = attrByPath ["services" "graphical-desktop" "enable"] false osConfig;
+            defaultText = literalExpression "osConfig.services.graphical-desktop.enable or false";
+          };
       };
     };
   };
 
   config = mkIf bh.enable (mkMerge [
-    {home.packages = [package];}
+    (mkIf bh.installPackage {home.packages = [package];})
 
     (mkIf headless.enable {
       systemd.user.services.browser-harness-chrome = {
@@ -102,7 +110,9 @@ in {
         };
         Install.WantedBy = ["default.target"];
       };
+    })
 
+    (mkIf (headless.enable && headless.profileLauncher.enable) {
       home.packages = [profileLauncher];
 
       xdg.desktopEntries.browser-harness-profile = {
@@ -119,5 +129,5 @@ in {
 
   warnings =
     optional (bh.enable && !(isAttrs cfg.skills))
-    "`modules.programs.ai.browser-harness.enable` adds the browser-harness skill only when `modules.programs.ai.skills` is an attribute set.";
+    "`modules.programs.ai.integrations.browser-harness.enable` adds the browser-harness skill only when `modules.programs.ai.skills` is an attribute set.";
 }
