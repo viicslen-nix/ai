@@ -253,10 +253,10 @@ which file you were reading.
 
 They are now split by owner, and no module keeps content next to it:
 
-- `content/skills`, `content/commands`, `content/skill-patches`,
-  `content/AGENTS.md` — the profile's payload, the portable half.
-- `content/opencode/` — the agents, skill and `dcp.jsonc` both opencode
-  modules share.
+- `content/skills`, `content/commands`, `content/agents`,
+  `content/skill-patches`, `content/AGENTS.md` — the profile's payload, the
+  portable half.
+- `content/opencode/` — the `dcp.jsonc` both opencode modules share.
 - `content/integrations/` — what `hmModules/ai/integrations/*` reference.
 
 The integration paths are `../../../content/…`, which is deep but says exactly
@@ -584,3 +584,28 @@ Nix both lookups miss and `ctrl+v` with an image on the clipboard does nothing,
 with no error at all. `strace -e openat` during the keypress shows both
 `ENOENT`s. The `opencode2` launcher prepends both libraries.
 v1 is unaffected because it shells out to `wl-paste` instead.
+
+## Agents are translated per harness
+
+The agents used to be opencode's alone, set by both opencode modules. They now
+go through `modules.programs.ai.agents` like commands, so every harness that
+takes agents gets them. The files stay in opencode's frontmatter, and opencode
+receives them verbatim. The other two cannot read that format:
+
+- Claude Code skips an agent file with no `name` and reports nothing. The
+  coderabbit agent had been forwarded verbatim for months and never loaded.
+  opencode's `tools: {write: false}` map and `permission.edit: deny` mean
+  nothing to it either; it wants `disallowedTools: Write, Edit`.
+- Copilot CLI reads `tools` as an allowlist of aliases (`read`, `edit`,
+  `execute`, …). A restricted agent therefore lists everything except what is
+  denied. That also drops MCP tools from it, because an allowlist cannot say
+  "all MCP servers", which is the price of keeping the read-only agents
+  read-only there.
+
+`builders/agentFor.nix` does both rewrites with yq at build time, so nothing
+is read at evaluation. `mode`, `temperature` and `model` are dropped for both:
+neither harness has a primary mode, and opencode model IDs are not theirs.
+
+The opencode-only `browser-automation` skill went at the same time. It
+described an opencode browser plugin's tools, and browser work now goes through
+the global browser skills.

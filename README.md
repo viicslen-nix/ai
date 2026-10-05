@@ -63,6 +63,7 @@ What `modules.programs.aiProfile` turns on:
 | --- | --- |
 | **Skills** | 20 curated from [mattpocock/skills](https://github.com/mattpocock/skills) (three patched in place, so upstream keeps flowing), plus `content/skills` — local skills and vendored collections (stitch, effective-html, plan-it, …) |
 | **Commands** | `commit`, `investigate`, `pr-loop`, `verify` |
+| **Agents** | `ask`, `debug`, `documentation`, `pr-review-fixer`, `review`, `security` from `content/agents` |
 | **Context** | `content/AGENTS.md`, the global prompt every harness receives |
 | **MCP servers** | context7, gh_grep, linear, playwright — OAuth or no auth at all |
 | **Integrations** | gateway (mcp-gateway), mempalace, coderabbit, openwiki |
@@ -71,9 +72,6 @@ What `modules.programs.aiProfile` turns on:
 Further integrations ship off by default: `orca`, `superset`,
 `browser-harness`, `jev`. Each integration installs its own CLI, so a host
 never adds it separately.
-
-The opencode modules also carry their own agents (ask, debug, documentation,
-pr-review-fixer, review, security) from `content/opencode/`.
 
 ## Outputs
 
@@ -166,6 +164,10 @@ harness's module is not imported:
 | `github-copilot-cli` | ✓ | ✓ | — | ✓ | ✓ |
 | `antigravity-cli` | ✓ | — | ✓ | ✓ | ✓ |
 | `codex` | ✓ | — | — | ✓ | ✓ |
+
+Agents are written in opencode's frontmatter and translated for the rest:
+Claude Code gets a `name` and `disallowedTools`, Copilot a `name` and a `tools`
+allowlist (`builders/agentFor.nix`).
 
 <details>
 <summary><b>Other modules</b></summary>

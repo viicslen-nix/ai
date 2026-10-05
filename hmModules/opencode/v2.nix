@@ -189,19 +189,6 @@ in {
         enable = true;
         enableMcpIntegration = true;
 
-        agents = mkDefaultAttrs {
-          ask = ../../content/opencode/agents/ask.md;
-          debug = ../../content/opencode/agents/debug.md;
-          review = ../../content/opencode/agents/review.md;
-          security = ../../content/opencode/agents/security.md;
-          documentation = ../../content/opencode/agents/documentation.md;
-          pr-review-fixer = ../../content/opencode/agents/pr-review-fixer.md;
-        };
-
-        skills = mkDefaultAttrs {
-          browser-automation = ../../content/opencode/skills/browser-automation.md;
-        };
-
         cli.keybinds = mkDefaultAttrs {
           "input.line.home" = "ctrl+a,home";
           "input.line.end" = "ctrl+e,end";
