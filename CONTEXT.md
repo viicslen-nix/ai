@@ -80,7 +80,72 @@ flake is a real input here, so nothing depends on the consumer's overlay.
 
 One upstream path is worth remembering: `writing-for-agents` was renamed from
 `writing-great-skills` and had its `GLOSSARY.md` split into `SKILL-MECHANICS.md`
-(mattpocock/skills 1fc6573e), so the key here changed with it.
+(mattpocock/skills 1fc6573e), so the key here changed with it. And
+`resolving-merge-conflicts` was deleted upstream outright (mattpocock/skills
+#1120): a curated path that disappears fails the eval inside `selectFromInput`
+with a trace that never names the skill, so after a bump that breaks, diff the
+list against `find skills -name SKILL.md` in the new rev first.
+
+### Renaming a skill without patching every caller
+
+`content/skills/review-code` is a fork of upstream `code-review`, and upstream
+skills (`implement`, `implement-spec`, `tdd`) call it by its old name. A
+`patchSkill` per caller would have to track every new mention upstream adds,
+and it returns a string, which drops `tdd`'s sibling `tests.md`/`mocking.md`.
+`modules.programs.ai.skillRenames` (`builders/renameSkills.nix`) instead
+rewrites `` `old` ``, `"old"` and a word-initial `/old` across the whole merged
+set, after the integrations are added. A bare `/old` was tried first and
+rewrote vendored metadata (`github-path: skills/orchestration`), so a slash
+counts only after a space, a backtick or a newline. A directory skill whose
+`SKILL.md` changes is copied
+into a `runCommandLocal` with the new `SKILL.md`, so its other files survive.
+That costs no IFD, because every target's `pathIsDirectory` is guarded by
+`isPath`, and a derivation is path-like without being a path. Store-path
+*strings* (integration skills that point into a package) are left alone:
+reading one at eval time would be IFD.
+
+### Namespaces follow Claude Code plugins
+
+A namespace — an integration with more than one skill
+(`<integration>.skillNamespace`), or a collection listed in `skillNamespaces` —
+is laid out the way Claude Code namespaces a plugin. Claude gets one plugin per
+namespace, so Orca's `orca-cli` is `/orca:cli` and stitch's `stitch-loop` is
+`/stitch:loop`: the short name drops an upstream `<ns>-` prefix. Every other
+harness has no plugin concept and gets the same skills flat, `orca-cli` and
+`stitch-loop`, which is also how Superset's own installer splits it
+(`superset:browser` for Claude, `~/.agents/skills/superset-browser` elsewhere).
+Single-skill sets (mempalace, openwiki, browser-harness, jev, plan-it) stay
+flat everywhere: a plugin of one only adds a prefix.
+
+Each view gets its own rewrite of the bodies: frontmatter `name:` is set to
+the short or flat name (replacing whatever was there, `stitch::x` included),
+`ns:x` and the flat name are rewritten to that view's form, and `../old/`
+links follow the directory rename. A *bare* old name is rewritten only when it
+is hyphenated. Superset's skills are `setup`, `page`, `browser`, `plugins`, and
+rewriting `` `setup` `` or `"setup"` everywhere corrupted prose and, in
+Superset's own `setup` skill, a `"setup": [...]` JSON example.
+
+The plugins load through `CLAUDE_CODE_PLUGIN_DIRS` in the generated
+`settings.json` `env` (Claude Code 2.1.280+, loaded as `<ns>@inline`), never by
+linking them under `skills/`. opencode v2 scans `~/.claude/skills` with
+`{*.md,**/SKILL.md}` and keys a skill by its parent directory, so a plugin
+there would add `doctor`, `page`, `cli` and the rest to opencode as skills of
+their own, and opencode has no switch to turn that scan off. A settings `env`
+value also reaches every launch path — Superset, Orca, `nix run .#claude` —
+which a wrapper around the HM-owned package would not. An `@inline` plugin
+outranks a skills-directory one of the same name, so the plugin Superset's app
+provisions into `~/.claude/skills/superset` shows as "Not loaded" instead of
+doubling up.
+
+The members are re-keyed to their flat name *before* the merge with the plain
+skills, so a user skill that shares an integration's upstream name is never
+swept into the rename, and a remaining collision fails the eval.
+`skillRenames` runs last, in both views.
+
+Superset's skills are vendored into `content/integrations/skills/superset`,
+pinned to the `cli-v<version>` tag of the superset-cli package: that package
+ships the same plugin, but listing a built package's directory at eval time is
+IFD, and the repo is too large to take as an input.
 
 The option merges across definitions, so a consumer adds its own skills rather
 than replacing these — which is how the nixos repo layers in the skills that

@@ -20,7 +20,7 @@
         isAttrs
         ;
     };
-    supersetIntegration = import ./integrations/superset.nix {inherit lib;};
+    supersetIntegration = import ./integrations/superset.nix {inherit lib aiInputs;};
     coderabbitIntegration = import ./integrations/coderabbit.nix {
       inherit
         lib
@@ -131,24 +131,106 @@
     effectiveHooks = zipAttrsWith (_: concatLists) (
       optional cfg.superset.enable supersetIntegration.hooks
     );
+    skillIntegrations = {
+      mempalace = mempalaceIntegration;
+      coderabbit = coderabbitIntegration;
+      openwiki = openwikiIntegration;
+      orca = orcaIntegration;
+      browser-harness = browserHarnessIntegration;
+      jev = jevIntegration;
+      superset = supersetIntegration;
+    };
+    renameSkills = import ../../builders/renameSkills.nix {inherit lib pkgs;};
+    skillDir = import ../../builders/skillDir.nix {inherit lib pkgs;};
+    enabledIntegrations = filter (integration: cfg.${integration}.enable) (attrNames skillIntegrations);
+
+    # A namespaced skill is `<ns>:<short>` in Claude Code (a plugin) and
+    # `<ns>-<short>` everywhere else; `short` drops an upstream `<ns>-` prefix.
+    member = ns: orig: content: let
+      short = removePrefix "${ns}-" orig;
+    in {
+      inherit ns orig content short;
+      flat =
+        if orig == ns
+        then orig
+        else "${ns}-${short}";
+      plugin = "${ns}:${short}";
+    };
+    integrationMembers = concatMap (integration: let
+      ns = cfg.${integration}.skillNamespace;
+    in
+      optionals (ns != "") (mapAttrsToList (member ns) skillIntegrations.${integration}.skills))
+    enabledIntegrations;
+    collectionMembers = concatLists (mapAttrsToList (ns: origs:
+      map (orig: member ns orig cfg.skills.${orig}) (filter (orig: cfg.skills ? ${orig}) origs))
+    cfg.skillNamespaces);
+    members = listToAttrs (map (m: nameValuePair m.flat m) (integrationMembers ++ collectionMembers));
+    plainSkills =
+      removeAttrs cfg.skills (map (m: m.orig) collectionMembers)
+      // mergeAttrsList (map (integration:
+        optionalAttrs (cfg.${integration}.skillNamespace == "") skillIntegrations.${integration}.skills)
+      enabledIntegrations);
+    memberClashes = filter (key: plainSkills ? ${key}) (attrNames members);
+
+    # Only hyphenated bare names are rewritten: Superset's `setup`, `page` and
+    # `browser` are ordinary words in other skills' prose.
+    distinctive = hasInfix "-";
+    mkView = {
+      refOf,
+      dirOf,
+      nameOf,
+    }: let
+      ms = attrValues members;
+    in
+      renameSkills.rename cfg.skillRenames (renameSkills.rewrite {
+          refs = listToAttrs (concatMap (m:
+            optional (m.flat != m.orig) (nameValuePair m.flat (refOf m))
+            ++ optional (m.plugin != refOf m) (nameValuePair m.plugin (refOf m))
+            ++ optional (distinctive m.orig && m.orig != refOf m) (nameValuePair m.orig (refOf m)))
+          ms);
+          dirs = listToAttrs (map (m: nameValuePair m.orig (dirOf m)) (filter (m: m.orig != dirOf m) ms));
+          names = mapAttrs (_: nameOf) members;
+        }
+        (plainSkills // mapAttrs (_: m: m.content) members));
+
+    flatSkills = mkView {
+      refOf = m: m.flat;
+      dirOf = m: m.flat;
+      nameOf = m: m.flat;
+    };
+    claudeSkills = mkView {
+      refOf = m: m.plugin;
+      dirOf = m: m.short;
+      nameOf = m: m.short;
+    };
+
     effectiveSkills =
       if isAttrs cfg.skills
       then
-        cfg.skills
-        // optionalAttrs cfg.mempalace.enable mempalaceIntegration.skills
-        // optionalAttrs cfg.coderabbit.enable coderabbitIntegration.skills
-        // optionalAttrs cfg.openwiki.enable openwikiIntegration.skills
-        // optionalAttrs cfg.orca.enable orcaIntegration.skills
-        // optionalAttrs cfg.browser-harness.enable browserHarnessIntegration.skills
-        // optionalAttrs cfg.jev.enable jevIntegration.skills
+        assert assertMsg (memberClashes == []) ''
+          modules.programs.ai: namespaced skills clash with plain skills of the same name: ${concatStringsSep ", " memberClashes}
+        ''; flatSkills
       else cfg.skills;
 
+    # Loaded through CLAUDE_CODE_PLUGIN_DIRS rather than linked under
+    # `skills/`: opencode scans ~/.claude/skills recursively and would list
+    # every short name (`doctor`, `page`) as a skill of its own.
+    claudePlugins = mapAttrs (ns: ms:
+      pkgs.runCommandLocal "claude-plugin-${ns}" {} (''
+          install -Dm644 ${pkgs.writeText "plugin.json" (builtins.toJSON {name = ns;})} $out/.claude-plugin/plugin.json
+          mkdir -p $out/skills
+        ''
+        + concatMapStrings (m: ''
+          cp -rL ${skillDir m.short (claudeSkills.${m.flat} or m.content)} $out/skills/${m.short}
+        '')
+        ms))
+    (groupBy (m: m.ns) (attrValues members));
+
     mkDefaultAttrs = attrs: mapAttrs (_: mkDefault) attrs;
-    skillDir = import ../../builders/skillDir.nix {inherit lib pkgs;};
     # opencode also reads claude-code's skills directory.
     claudeCodeSkills =
-      if isAttrs effectiveSkills
-      then mapAttrs skillDir effectiveSkills
+      if isAttrs cfg.skills
+      then mapAttrs skillDir (removeAttrs claudeSkills (attrNames members))
       else effectiveSkills;
 
     mkDefaultSkills = skills:
@@ -243,6 +325,30 @@
         description = mdDoc "Global skills forwarded to enabled AI CLI targets.";
       };
 
+      skillRenames = mkOption {
+        type = types.attrsOf types.str;
+        default = {};
+        example = {code-review = "review-code";};
+        description = mdDoc ''
+          Old skill name → new name. References to the old name in every skill
+          (`` `old` ``, `"old"`, a word-initial `/old`) are rewritten, and a skill
+          installed under the old name is re-keyed. Use it when a local skill
+          replaces an upstream one under a different name.
+        '';
+      };
+
+      skillNamespaces = mkOption {
+        type = types.attrsOf (types.listOf types.str);
+        default = {};
+        example = {stitch = ["code-to-design" "stitch-loop"];};
+        description = mdDoc ''
+          Namespace → names of skills in `skills` that belong to it. Claude Code
+          gets each namespace as a plugin, so `stitch-loop` is `/stitch:loop`;
+          every other target gets flat `stitch-loop`, `stitch-code-to-design`.
+          `ns:x`, hyphenated old names and `../old/` links are rewritten to match.
+        '';
+      };
+
       targets = {
         opencode = mkOption {
           type = types.bool;
@@ -281,15 +387,25 @@
         };
       };
 
-      inherit (mempalaceIntegration.options) mempalace;
-      inherit (coderabbitIntegration.options) coderabbit;
-      inherit (openwikiIntegration.options) openwiki;
-      inherit (orcaIntegration.options) orca;
-      inherit (browserHarnessIntegration.options) browser-harness;
-      inherit (jevIntegration.options) jev;
-      inherit (supersetIntegration.options) superset;
       inherit (mcpGatewayIntegration.options) gateway;
-    };
+    }
+    // mapAttrs (integration: module:
+      module.options.${integration}
+      // {
+        skillNamespace = mkOption {
+          type = types.str;
+          default =
+            if length (attrNames module.skills) > 1
+            then integration
+            else "";
+          defaultText = literalExpression ''"${integration}" if it ships more than one skill, else ""'';
+          description = mdDoc ''
+            Namespace for this integration's skills, as `modules.programs.ai.skillNamespaces`
+            does for a collection. `""` installs them under their upstream names.
+          '';
+        };
+      })
+    skillIntegrations;
 
     config = mkIf cfg.enable (mkMerge [
       {
@@ -374,7 +490,11 @@
           agents = mkDefaultAttrs effectiveAgents;
           context = mkIf hasGlobalContext (mkDefault cfg.context);
           skills = mkIf (hasGlobalSkills && hasClaudeCodeSkillsOption) (mkDefaultSkills claudeCodeSkills);
-          settings = optionalAttrs (effectiveHooks != {}) {hooks = effectiveHooks;};
+          settings =
+            optionalAttrs (effectiveHooks != {}) {hooks = effectiveHooks;}
+            // optionalAttrs (claudePlugins != {}) {
+              env.CLAUDE_CODE_PLUGIN_DIRS = concatStringsSep ":" (map toString (attrValues claudePlugins));
+            };
         };
       }))
       (optionalAttrs hasAntigravityOption (mkIf cfg.targets.antigravity-cli {

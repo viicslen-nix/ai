@@ -83,6 +83,13 @@ modules.programs.ai = {
   mcps = { context7.url = "https://mcp.context7.com/mcp"; };
 
   targets.codex = false;              # every harness is on by default
+
+  # Point every skill that calls `code-review` at your fork instead.
+  skillRenames.code-review = "review-code";
+  # A namespace is a plugin in Claude Code (`/stitch:loop`) and a flat
+  # prefix elsewhere (`stitch-loop`). Integrations with several skills get
+  # one by default; `orca.skillNamespace = ""` keeps upstream names.
+  skillNamespaces.stitch = ["code-to-design" "stitch-loop"];
 };
 ```
 

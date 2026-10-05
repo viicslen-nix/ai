@@ -42,6 +42,18 @@ with lib; let
     "skills/productivity/writing-for-agents"
   ];
 
+  localSkills = mkSkillAttrSet ../content/skills;
+  # `gh skill` records each vendored skill's origin in its frontmatter.
+  fromRepo = repo:
+    attrNames (filterAttrs (_: path:
+      hasInfix "github-repo: https://github.com/${repo}\n"
+      (builtins.readFile (
+        if pathIsDirectory path
+        then path + "/SKILL.md"
+        else path
+      )))
+    localSkills);
+
   patchedSkills = {
     grilling =
       patchSkill
@@ -96,7 +108,10 @@ in {
         openwiki.enable = true;
         context = ../content/AGENTS.md;
         # Order matters — last wins, and ./skills shadows both upstream layers.
-        skills = upstreamSkills // patchedSkills // mkSkillAttrSet ../content/skills;
+        skills = upstreamSkills // patchedSkills // localSkills;
+        skillRenames.code-review = "review-code";
+        # Only collections that drive a tool get a namespace.
+        skillNamespaces.stitch = fromRepo "google-labs-code/stitch-skills";
         commands = mkMarkdownAttrSet ../content/commands;
   
         # Credential-free backends only. Anything needing a secret is the

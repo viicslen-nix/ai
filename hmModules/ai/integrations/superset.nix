@@ -1,4 +1,7 @@
-{lib}:
+{
+  lib,
+  aiInputs,
+}:
 with lib; let
   # A no-op outside a Superset workspace ($SUPERSET_HOME_DIR unset), so the same
   # one-liner is safe on every event Superset wants to observe.
@@ -26,9 +29,13 @@ in {
     StopFailure = on;
   };
 
+  # Vendored, pinned to the superset-cli release: the package ships them too,
+  # but listing a built package's directory at eval time is IFD.
+  skills = aiInputs.viicslen-lib.lib.skills.mkSkillAttrSet ../../../content/integrations/skills/superset;
+
   options = {
     superset = {
-      enable = mkEnableOption (mdDoc "Superset agent-state notifications from Claude Code hooks");
+      enable = mkEnableOption (mdDoc "Superset skills and agent-state notifications from Claude Code hooks");
     };
   };
 }
