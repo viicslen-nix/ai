@@ -8,8 +8,7 @@
 }:
 with lib; let
   bh = cfg.integrations.browser-harness;
-  package = bh.package;
-  headless = bh.headless;
+  inherit (bh) package headless;
   cdpUrl = "http://127.0.0.1:${toString headless.port}";
 
   # Chromium locks a profile to one instance, so the headed window takes over

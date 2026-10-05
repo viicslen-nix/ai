@@ -1,7 +1,10 @@
 # Rewrites a skill set's SKILL.md bodies. A reference is `x`, "x" or a
 # word-initial /x; a relative link is ../x/. Only real paths and text are read:
 # a store-path string would need IFD, so it passes through untouched.
-{lib, pkgs}: let
+{
+  lib,
+  pkgs,
+}: let
   inherit (lib) attrNames concatMap concatStringsSep elemAt filter findFirst head imap0 isPath isString length mapAttrs mapAttrs' nameValuePair pathIsDirectory range replaceStrings splitString;
 
   refForms = name: ["`${name}`" ''"${name}"'' "`/${name}" " /${name}" "\n/${name}"];

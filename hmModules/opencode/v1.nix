@@ -48,7 +48,7 @@ with lib; let
   # `plugin`, singular — v2 renamed this key to `plugins`.
   settings =
     cfg.settings
-    // optionalAttrs (cfg.plugin != []) {plugin = cfg.plugin;}
+    // optionalAttrs (cfg.plugin != []) {inherit (cfg) plugin;}
     // optionalAttrs (mergedMcpServers != {}) {mcp = mergedMcpServers;};
 
   mkEntry = content:
@@ -122,7 +122,7 @@ in {
     enableMcpIntegration = mkEnableOption (mdDoc "forwarding `programs.mcp.servers` into the generated config");
 
     settings = mkOption {
-      type = jsonFormat.type;
+      inherit (jsonFormat) type;
       default = {};
       description = mdDoc "Written to {file}`$XDG_CONFIG_HOME/opencode1/opencode.json`.";
     };

@@ -68,7 +68,7 @@ while IFS=$'\t' read -r rel src; do
     continue
   fi
 
-  if [ -L "$dst" ] && case "$(readlink "$dst")" in /nix/store/*) true ;; *) false ;; esac; then
+  if [ -L "$dst" ] && case "$(readlink "$dst")" in /nix/store/*) true ;; *) false ;; esac then
     install_file "$src" "$dst"
     continue
   fi

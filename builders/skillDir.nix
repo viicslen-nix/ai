@@ -1,6 +1,9 @@
 # opencode v2 watches the parent of each resolved SKILL.md recursively, so a
 # bare store file makes it watch all of /nix/store (~1M inotify watches, ENOSPC).
-{lib, pkgs}: name: content: let
+{
+  lib,
+  pkgs,
+}: name: content: let
   # A `"${pkg}/…/SKILL.md"` string; telling it from a directory otherwise needs IFD.
   isStoreFile =
     lib.isString content

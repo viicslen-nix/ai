@@ -114,7 +114,7 @@ in {
         # Only collections that drive a tool get a namespace.
         skillNamespaces.stitch = fromRepo "google-labs-code/stitch-skills";
         commands = mkMarkdownAttrSet ../content/commands;
-  
+
         # Credential-free backends only. Anything needing a secret is the
         # consumer's to add, so this flake stays runnable anywhere.
         mcps = {

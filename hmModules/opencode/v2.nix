@@ -45,7 +45,7 @@ with lib; let
 
   settings =
     cfg.settings
-    // optionalAttrs (cfg.plugins != []) {plugins = cfg.plugins;}
+    // optionalAttrs (cfg.plugins != []) {inherit (cfg) plugins;}
     // optionalAttrs (mergedMcpServers != {}) {mcp = mergedMcpServers;};
 
   # v2 scans both the singular and plural name for each of these, so the plural
@@ -249,50 +249,52 @@ in {
     })
 
     (mkIf cfg.enable {
-      home.packages =
-        [wrapper]
-        ++ optional isDefault (pkgs.runCommand "opencode-default" {} ''
-          mkdir -p $out/bin
-          ln -s ${wrapper}/bin/opencode2 $out/bin/opencode
-        '');
+      home = {
+        packages =
+          [wrapper]
+          ++ optional isDefault (pkgs.runCommand "opencode-default" {} ''
+            mkdir -p $out/bin
+            ln -s ${wrapper}/bin/opencode2 $out/bin/opencode
+          '');
 
-      # One-time move off the plain paths v2 used while it owned them outright.
-      # Must run before checkLinkTargets, which refuses to replace the real
-      # ~/.config/opencode directory with the default-version symlink.
-      home.activation.opencode2Migrate = hm.dag.entryBefore ["checkLinkTargets"] ''
-        opencodeMoves=()
-        opencodeQueueMove() {
-          local src=$1 dst=$2
-          [[ -d $src && ! -L $src ]] || return 0
-          if [[ -e $dst ]]; then
-            warnEcho "opencode: leaving $src in place, $dst already exists"
-            return 0
+        # One-time move off the plain paths v2 used while it owned them outright.
+        # Must run before checkLinkTargets, which refuses to replace the real
+        # ~/.config/opencode directory with the default-version symlink.
+        activation.opencode2Migrate = hm.dag.entryBefore ["checkLinkTargets"] ''
+          opencodeMoves=()
+          opencodeQueueMove() {
+            local src=$1 dst=$2
+            [[ -d $src && ! -L $src ]] || return 0
+            if [[ -e $dst ]]; then
+              warnEcho "opencode: leaving $src in place, $dst already exists"
+              return 0
+            fi
+            opencodeMoves+=("$src" "$dst")
+          }
+          opencodeQueueMove "${config.xdg.configHome}/opencode" "${config.xdg.configHome}/opencode2"
+          opencodeQueueMove "${config.xdg.dataHome}/opencode" "${config.xdg.dataHome}/opencode2/opencode"
+          opencodeQueueMove "${config.xdg.stateHome}/opencode" "${config.xdg.stateHome}/opencode2/opencode"
+          opencodeQueueMove "${config.xdg.cacheHome}/opencode" "${config.xdg.cacheHome}/opencode2/opencode"
+
+          if (( ''${#opencodeMoves[@]} )); then
+            # Background `serve` daemons respawn on demand; a live TUI would lose its database.
+            opencodeTuis=$(${pkgs.procps}/bin/pgrep -u "$(id -u)" -af 'bin/\.?opencode2' | grep -v ' serve' || true)
+            if [[ -n $opencodeTuis ]]; then
+              errorEcho "opencode: close every opencode session before this switch, its data is moving:"
+              errorEcho "$opencodeTuis"
+              exit 1
+            fi
+            run ${pkgs.procps}/bin/pkill -u "$(id -u)" -f 'bin/\.?opencode2.* serve' || true
+            for ((i = 0; i < ''${#opencodeMoves[@]}; i += 2)); do
+              run mkdir -p "$(dirname "''${opencodeMoves[i + 1]}")"
+              run mv $VERBOSE_ARG "''${opencodeMoves[i]}" "''${opencodeMoves[i + 1]}"
+            done
           fi
-          opencodeMoves+=("$src" "$dst")
-        }
-        opencodeQueueMove "${config.xdg.configHome}/opencode" "${config.xdg.configHome}/opencode2"
-        opencodeQueueMove "${config.xdg.dataHome}/opencode" "${config.xdg.dataHome}/opencode2/opencode"
-        opencodeQueueMove "${config.xdg.stateHome}/opencode" "${config.xdg.stateHome}/opencode2/opencode"
-        opencodeQueueMove "${config.xdg.cacheHome}/opencode" "${config.xdg.cacheHome}/opencode2/opencode"
+        '';
 
-        if (( ''${#opencodeMoves[@]} )); then
-          # Background `serve` daemons respawn on demand; a live TUI would lose its database.
-          opencodeTuis=$(${pkgs.procps}/bin/pgrep -u "$(id -u)" -af 'bin/\.?opencode2' | grep -v ' serve' || true)
-          if [[ -n $opencodeTuis ]]; then
-            errorEcho "opencode: close every opencode session before this switch, its data is moving:"
-            errorEcho "$opencodeTuis"
-            exit 1
-          fi
-          run ${pkgs.procps}/bin/pkill -u "$(id -u)" -f 'bin/\.?opencode2.* serve' || true
-          for ((i = 0; i < ''${#opencodeMoves[@]}; i += 2)); do
-            run mkdir -p "$(dirname "''${opencodeMoves[i + 1]}")"
-            run mv $VERBOSE_ARG "''${opencodeMoves[i]}" "''${opencodeMoves[i + 1]}"
-          done
-        fi
-      '';
-
-      home.activation.opencodeStaleSkillLinks =
-        import ../../builders/staleSkillLinks.nix {inherit lib;} "${config.xdg.configHome}/opencode2/skills";
+        activation.opencodeStaleSkillLinks =
+          import ../../builders/staleSkillLinks.nix {inherit lib;} "${config.xdg.configHome}/opencode2/skills";
+      };
 
       # Per file, never the directory: opencode writes service.json in here at
       # runtime and a store-linked directory would block it.

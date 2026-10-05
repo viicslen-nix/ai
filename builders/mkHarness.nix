@@ -61,11 +61,13 @@
         enable
         {modules.programs.ai.targets = lib.genAttrs allTargets (t: t == target);}
         {
-          home.stateVersion = "25.11";
-          home.username = "runner";
-          home.homeDirectory = "/tmp/runner";
-          # So the modules write under .config, not ~/.<name>.
-          home.preferXdgDirectories = true;
+          home = {
+            stateVersion = "25.11";
+            username = "runner";
+            homeDirectory = "/tmp/runner";
+            # So the modules write under .config, not ~/.<name>.
+            preferXdgDirectories = true;
+          };
         }
       ];
   };
