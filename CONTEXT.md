@@ -91,7 +91,7 @@ flake is a real input here, so nothing depends on the consumer's overlay.
    silently reverting.
 3. `mkSkillAttrSet ../content/skills` — a local directory, which shadows either
    of the layers above outright. It also holds the vendored collections
-   (`just vendor-skills` in the consuming repo), which are plain checked-in
+   (`just vendor-skills`), which are plain checked-in
    skills as far as this is concerned.
 
 One upstream path is worth remembering: `writing-for-agents` was renamed from
@@ -191,8 +191,8 @@ and a target only forwards what its module accepts:
 | | context | agents | commands | skills | mcp |
 | --- | --- | --- | --- | --- | --- |
 | claude-code | ✓ | ✓ | ✓ | ✓ | ✓ |
-| opencode | ✓ | ✓ | ✓ | ✓ | ✓ |
-| opencode2 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| opencode (v2) | ✓ | ✓ | ✓ | ✓ | ✓ |
+| opencode1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | github-copilot-cli | ✓ | ✓ | — | ✓ | ✓ |
 | antigravity-cli | ✓ | — | ✓ | ✓ | ✓ |
 | codex | ✓ | — | — | ✓ | ✓ |

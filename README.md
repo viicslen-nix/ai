@@ -1,59 +1,99 @@
+<div align="center">
+
 # ai
 
-A portable AI coding-harness configuration: one set of skills, commands, agents
-and MCP servers, fanned out to every harness that can read them.
+**One set of skills, commands, agents and MCP servers, fanned out to every AI coding harness.**
+
+[![flake-parts](https://img.shields.io/badge/built_with-flake--parts-7EBAE4?style=flat-square&logo=nixos&logoColor=white)](https://flake.parts)
+[![Home Manager](https://img.shields.io/badge/Home_Manager-modules-41439A?style=flat-square)](https://github.com/nix-community/home-manager)
+[![Harnesses](https://img.shields.io/badge/harnesses-Claude_Code_·_opencode_·_Codex_·_Copilot_·_Antigravity-555?style=flat-square)](#try-it)
+
+</div>
 
 Declare your context once as `modules.programs.ai`, and it reaches Claude Code,
 opencode (v2, with v1 alongside), Codex, GitHub Copilot CLI and Antigravity in
 whatever shape each one expects — Markdown commands here, a TOML block there, a
-per-harness skills directory somewhere else.
+plugin directory somewhere else.
 
-## Try it without installing anything
+## Contents
+
+- [Try it](#try-it)
+- [What's in it](#whats-in-it)
+- [Outputs](#outputs)
+- [Use it as a flake input](#use-it-as-a-flake-input)
+- [Options](#options)
+- [Credentials](#credentials)
+- [Working on it](#working-on-it)
+
+## Try it
 
 ```bash
 nix run github:viicslen-nix/ai#claude
 nix run github:viicslen-nix/ai#opencode
-nix run github:viicslen-nix/ai#opencode1
 nix run github:viicslen-nix/ai#codex
 nix run github:viicslen-nix/ai#copilot
 nix run github:viicslen-nix/ai#antigravity
 ```
 
-Each of these is the real harness wrapped in its configuration. On first run it
-syncs ~50-70 files into that harness's config directory and points the harness
-at them, then execs the binary. Nothing is installed and nothing is left behind
-but the config.
+Each is the real harness wrapped in its configuration: the wrapper syncs the
+files the harness's home-manager module would write (~50–70) into its config
+directory, points the harness at them, and execs the binary. Nothing else is
+installed.
 
 The files are symlinks into the Nix store, so a later run updates them in
-place. If you have edited one by hand, the wrapper shows you a coloured diff
-and asks before replacing it:
+place. A file you edited by hand gets a coloured diff and a prompt —
+`[y]es / [n]o / [a]ll / [q]uit asking`. An `n` is remembered in
+`.ai-sync-keep`; non-interactive runs keep your version. `AI_SYNC=force`
+replaces without asking, `AI_SYNC=skip` never does.
 
-```
-skills/tdd/SKILL.md differs from the version this build carries:
-...
-Replace it? [y]es / [n]o / [a]ll / [q]uit asking:
-```
+> [!NOTE]
+> On a machine where home-manager already manages that harness, the wrapper
+> leaves its files alone and just runs the harness — home-manager owns them.
 
-Answering `n` records the file and stops asking about it. Non-interactive runs
-keep your version and say so. `AI_SYNC=force` replaces without asking,
-`AI_SYNC=skip` never does.
+> [!NOTE]
+> Antigravity has no config-directory variable: `agy` reads `~/.gemini`
+> wherever it runs, so that is what `#antigravity` writes. Every other harness
+> is pointed at a directory of its own.
 
 ## What's in it
 
-- **26 skills** locally, plus 19 curated from
-  [mattpocock/skills](https://github.com/mattpocock/skills), patched in place
-  rather than forked so upstream changes keep flowing in.
-- **4 commands** — `commit`, `investigate`, `pr-loop`, `verify`.
-- **Agents** for opencode: ask, debug, review, security, documentation,
-  pr-review-fixer.
-- **MCP servers** that need no credentials: context7, gh_grep, linear,
-  playwright. Anything needing a secret is yours to add — see
-  [Credentials](#credentials).
-- **Integrations** that wire themselves up when enabled: mcp-gateway,
-  mempalace, coderabbit, openwiki, superset, orca, browser-harness, jev. Each
-  installs its own CLI (`integrations.<name>.package`, or
-  `installPackage = false` to leave it off `PATH`), so a host never has to add
-  it separately.
+What `modules.programs.aiProfile` turns on:
+
+| | |
+| --- | --- |
+| **Skills** | 20 curated from [mattpocock/skills](https://github.com/mattpocock/skills) (three patched in place, so upstream keeps flowing), plus `content/skills` — local skills and vendored collections (stitch, effective-html, plan-it, …) |
+| **Commands** | `commit`, `investigate`, `pr-loop`, `verify` |
+| **Context** | `content/AGENTS.md`, the global prompt every harness receives |
+| **MCP servers** | context7, gh_grep, linear, playwright — OAuth or no auth at all |
+| **Integrations** | gateway (mcp-gateway), mempalace, coderabbit, openwiki |
+| **Claude Code** | marketplaces and plugins (mempalace, ponytail, worktrunk, document-skills, …) |
+
+Further integrations ship off by default: `orca`, `superset`,
+`browser-harness`, `jev`. Each integration installs its own CLI, so a host
+never adds it separately.
+
+The opencode modules also carry their own agents (ask, debug, documentation,
+pr-review-fixer, review, security) from `content/opencode/`.
+
+## Outputs
+
+| Output | What |
+| --- | --- |
+| `packages.<system>.claude` / `codex` / `copilot` / `antigravity` | A harness wrapped with its config |
+| `packages.<system>.opencode` (= `default`, `opencode2`) | opencode v2, launcher `opencode2` |
+| `packages.<system>.opencode1` | opencode v1, with an `op1` alias |
+| `packages.<system>.oh-my-opencode` | opencode v1 with oh-my-opencode, in `~/.config/oh-my-opencode` |
+| `homeManagerModules.default` | Everything below, with `aiProfile` on |
+| `homeManagerModules.ai` | The fan-out mechanism, `modules.programs.ai` |
+| `homeManagerModules.profile` | The opinions, `modules.programs.aiProfile` |
+| `homeManagerModules.claude-code` | Global Claude Code settings, marketplaces and plugins |
+| `homeManagerModules.opencode` (= `opencode2`) / `opencode1` | opencode v2 / v1 |
+| `homeManagerModules.opencode-service` | The per-user opencode web service |
+| `nixosModules.opencode-web` | opencode as a web server for every home-manager user |
+| `devShells.<system>.default` | `gh`, `git`, `just`, `alejandra`, `column` for the recipes |
+| `formatter.<system>`, `checks.<system>` | treefmt, its `treefmt` check, and a `statix` check |
+
+Systems: `x86_64-linux`, `aarch64-linux`, `x86_64-darwin`, `aarch64-darwin`.
 
 ## Use it as a flake input
 
@@ -66,73 +106,107 @@ keep your version and say so. `AI_SYNC=force` replaces without asking,
 }
 ```
 
-`homeManagerModules.default` brings everything, opinions included — it turns
-`modules.programs.aiProfile` on for you, and `enable = false` turns it back off.
-The pieces are also exported separately — `ai`, `profile`, `claude-code`,
-`opencode`, `opencode1`, `opencode-service` — if you want the fan-out without
-the opinions, or one harness without the rest.
+`default` brings everything, opinions included. Import the pieces instead for
+the fan-out without the opinions, or one harness without the rest. Importing
+`profile` turns it on; `modules.programs.aiProfile.enable = false` keeps the
+module without the opinions.
 
-### The two layers
-
-**`modules.programs.ai`** is the mechanism: it takes your content and
-distributes it. It has no opinions about what that content is.
-
-```nix
-modules.programs.ai = {
-  context = ./AGENTS.md;              # the global system prompt
-  skills = { my-skill = ./skill.md; };
-  commands = { deploy = ./deploy.md; };
-  agents = { reviewer = ./reviewer.md; };
-  mcps = { context7.url = "https://mcp.context7.com/mcp"; };
-
-  targets.codex = false;              # every harness is on by default
-
-  # Point every skill that calls `code-review` at your fork instead.
-  skillRenames.code-review = "review-code";
-  # A namespace is a plugin in Claude Code (`/stitch:loop`) and a flat
-  # prefix elsewhere (`stitch-loop`). Integrations with several skills get
-  # one by default; `integrations.orca.skillNamespace = ""` keeps upstream names.
-  skillNamespaces.stitch = ["code-to-design" "stitch-loop"];
-
-  # Every integration lives under `integrations`. `installPackage = false`
-  # keeps its CLI off PATH; MCP servers and services still run it by store path.
-  integrations.mempalace = {
-    enable = true;
-    installPackage = false;
-  };
-};
-```
-
-Each target writes only what that harness supports, and warns rather than fails
-when a harness's module isn't present. Commands are translated per harness;
-Codex and Copilot take context and skills but have no command concept.
-
-**`modules.programs.aiProfile`** is the opinion: it gives you everything under
-[What's in it](#whats-in-it), plus the integrations. `homeManagerModules.default`
-and every `nix run` package turn it on; importing `profile` on its own does not.
+The flake reaches home-manager through
+[omniflake](https://github.com/fzakaria/omniflake)'s index rather than an input
+of its own. Point `inputs.ai.inputs.omniflake.follows` at yours so only one copy
+is locked.
 
 ### NixOS
 
 ```nix
 imports = [inputs.ai.nixosModules.opencode-web];
-modules.services.opencode-web.enable = true;
+modules.services.opencode-web.enable = true;  # host, port (43037), hostname, package
 ```
 
-Runs opencode as a web server, pulling in the matching home-manager service
-through `home-manager.sharedModules`. The credential is set on the
-home-manager side: point `services.opencode-web.environmentFile` at a file
-holding `OPENCODE_SERVER_PASSWORD`, outside the Nix store.
+Injects the web service into every home-manager user through
+`home-manager.sharedModules`. It runs the launcher of
+`modules.programs.opencode.default` (`serve` for v2, `web` for v1). Set the
+password per user with `services.opencode-web.environmentFile`, a file holding
+`OPENCODE_SERVER_PASSWORD` outside the Nix store.
+
+## Options
+
+**`modules.programs.ai`** is the mechanism: it takes your content and
+distributes it, with no opinions about what that content is.
+
+```nix
+modules.programs.ai = {
+  context = ./AGENTS.md;
+  skills.my-skill = ./skill.md;            # a file, a directory, or text
+  commands.deploy = ./deploy.md;
+  agents.reviewer = ./reviewer.md;
+  mcps.context7.url = "https://mcp.context7.com/mcp";
+
+  targets.codex = false;                   # every harness is on by default
+
+  # Point every skill that calls `code-review` at your fork instead.
+  skillRenames.code-review = "review-code";
+  # A plugin in Claude Code (`/stitch:loop`), a flat prefix elsewhere (`stitch-loop`).
+  skillNamespaces.stitch = ["code-to-design" "stitch-loop"];
+
+  integrations.mempalace = {
+    enable = true;
+    installPackage = false;                # keep the CLI off PATH; MCP still runs it
+  };
+};
+```
+
+A target writes only what its harness accepts, and drops out when that
+harness's module is not imported:
+
+| Target | context | agents | commands | skills | MCP |
+| --- | :-: | :-: | :-: | :-: | :-: |
+| `claude-code` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `opencode` (v2) / `opencode1` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `github-copilot-cli` | ✓ | ✓ | — | ✓ | ✓ |
+| `antigravity-cli` | ✓ | — | ✓ | ✓ | ✓ |
+| `codex` | ✓ | — | — | ✓ | ✓ |
+
+<details>
+<summary><b>Other modules</b></summary>
+
+| Option | Does |
+| --- | --- |
+| `modules.programs.aiProfile.enable` | The opinionated set above; defaults to `true` once imported |
+| `modules.programs.ai.integrations.<name>` | `enable`, `package` + `installPackage`, `skillNamespace` (multi-skill integrations), plus each one's own knobs. Integrations: `gateway`, `mempalace`, `coderabbit`, `openwiki`, `orca`, `superset`, `browser-harness`, `jev` |
+| `modules.programs.claude-code` | `marketplaces`, `plugins`, `settings` (merged over the pinned defaults); moves the config dir to `$XDG_CONFIG_HOME/claude` |
+| `modules.programs.opencode` | v2: `enable`, `model`, `small_model`, `phpantom.enable`; options on `programs.opencode2` |
+| `modules.programs.opencode1` | v1, the same shape; options on `programs.opencode1` |
+| `modules.programs.opencode.default` | `"v2"` or `"v1"`: which version gets the `opencode` command, the `~/.config/opencode` symlink and `opencode-web` |
+
+</details>
+
+<details>
+<summary><b>opencode v1 and v2</b></summary>
+
+Both are isolated, and the default only points:
+
+| | v1 | v2 |
+| --- | --- | --- |
+| launcher | `opencode1` (`op1`) | `opencode2` |
+| config | `~/.config/opencode1` | `~/.config/opencode2` |
+| data | `~/.local/share/opencode1/opencode` | `~/.local/share/opencode2/opencode` |
+
+v2 renamed the config keys (`plugin`→`plugins`, `agent`→`agents`, an agent's
+`prompt`→`system`), so each major keeps its own module, and v1 plugins do not
+load on v2. v1 no longer goes through home-manager's `programs.opencode` (which
+hardcodes `~/.config/opencode`), so it has no `tui`, `themes` or `tools`
+options and no stylix theming.
+
+</details>
 
 ## Credentials
 
-There are none in this repo, deliberately. Every MCP server here is
-credential-free, so the flake runs anywhere without carrying somebody's
-secrets.
-
-To add one that needs a token, pass it from your own configuration. For a
-remote backend, put the credential in a header and let mcp-gateway expand it
-from the environment rather than writing it into a config file that lands
-world-readable in the Nix store:
+None live here, deliberately: every MCP server this flake ships authenticates
+with OAuth or not at all, so it runs anywhere. To add one that needs a token,
+pass it from your own configuration. For a remote backend, put the credential
+in a header and let mcp-gateway expand it from the environment, rather than
+writing it into a config file that lands world-readable in the store:
 
 ```nix
 modules.programs.ai.mcps.my_service = {
@@ -146,51 +220,36 @@ systemd.user.services.mcp-gateway.Service.EnvironmentFile = "%t/agenix/my-servic
 ## Working on it
 
 ```bash
-nix develop
+nix develop        # gh, git, just, alejandra, column
+nix fmt            # treefmt: deadnix, statix, alejandra, shfmt
+nix flake check    # formatting, statix (repeated keys `statix fix` skips)
 ```
 
-Brings `gh`, `just`, `git`, `alejandra` and `column` — everything the recipes
-need. `gh skill` is a preview command, so an older `gh` on your `PATH` will fail
-every one of them; the shell pins a new enough one.
+| Recipe | Does |
+| --- | --- |
+| `just vendor-skills <owner/repo> [skill\|--all]` | Vendor an upstream collection into `content/skills` |
+| `just vendor-integration-skills <name> <owner/repo> …` | Vendor one integration's collection into `content/integrations/skills/<name>` |
+| `just update-skills [--dry-run]` | Re-pull every vendored skill |
+| `just skills` | List vendored skills with their repo and ref |
 
-```bash
-just vendor-skills <owner/repo> [skill|--all]   # add an upstream collection
-just update-skills [--dry-run]                  # re-pull every vendored skill
-just skills                                     # list them with their origin
-```
+`gh skill` is a preview command, so an older `gh` on your `PATH` fails every
+recipe; the dev shell pins a new enough one. `gh` records each skill's origin in
+its own `SKILL.md` frontmatter, so there is no manifest — and a hand-written
+skill has none, so `update-skills` warns and skips it. Vendored skills are
+excluded from `nix fmt`.
 
-Vendoring is for upstreams carrying a lot of non-skill weight — a non-flake
-input has no sparse fetch, so it would copy the whole repository into the store.
-A small, skill-only repo rides as a `flake = false` input instead; see
-`mattpocock-skills` in `flake.nix`. `gh` records each skill's origin in its own
-`SKILL.md` frontmatter, so there is no manifest to keep in step — and a skill
-written here by hand has none, so `update` warns and skips it.
+> [!TIP]
+> Vendoring is for upstreams carrying a lot of non-skill weight: a non-flake
+> input has no sparse fetch. A small, skill-only repo rides as a
+> `flake = false` input instead, like `mattpocock-skills`.
 
-## Layout
-
-```
+```text
 builders/      mkHarness.nix + sync.sh — every package is built from these
 hmModules/     home-manager modules; opencode/ holds v1, v2, oh-my and the service
 nixosModules/  opencode-web
 content/       every markdown payload
 ```
 
-`CONTEXT.md` carries the reasoning behind all of it — what was tried, what
+[`AGENTS.md`](AGENTS.md) holds the rules for changing this repo;
+[`CONTEXT.md`](CONTEXT.md) the reasoning behind them — what was tried, what
 broke, and why the obvious shape is sometimes wrong.
-
-## Notes
-
-- **Modules take `aiInputs`, not `inputs`.** Home-manager's `extraSpecialArgs`
-  outranks `_module.args`, so a module asking for `inputs` would silently get
-  the *consumer's* set instead of this flake's.
-- **Antigravity is not self-contained.** `agy` has no config-directory
-  variable and reads `~/.gemini` wherever it runs, so that is what
-  `nix run .#antigravity` writes to. Every other harness is pointed at its own
-  directory and touches nothing else.
-- **`opencode` is v2; v1 is `opencode1`.** v2 renamed the config keys
-  (`plugin`→`plugins`, `agent`→`agents`, an agent's `prompt`→`system`), so they
-  stay separate modules. v2 owns `~/.config/opencode` and the plain XDG paths;
-  v1 is isolated under `opencode1` and ships a short `op1` alias. Note v1 no
-  longer uses home-manager's own `programs.opencode` module — that module
-  hardcodes `~/.config/opencode`, which v2 now needs — so v1 loses its `tui`,
-  `themes`, `tools` and `commands` options, stylix theming among them.
