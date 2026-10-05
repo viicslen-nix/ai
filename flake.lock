@@ -289,11 +289,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1790695587,
-        "narHash": "sha256-AI5aByhjFNkF4KhMXH7cYnbogPRqKaHFNs1s0siN1FA=",
+        "lastModified": 1791210804,
+        "narHash": "sha256-qegIH5sqi2ZJOHvjjTNH99UlNvazuh9oKwUaT4+oOfE=",
         "owner": "viicslen-nix",
         "repo": "packages",
-        "rev": "7833adb882b1be83b0fe49ec6c8336be402c795e",
+        "rev": "69d36399653de8b26211d086c181652f8f0606ed",
         "type": "github"
       },
       "original": {
