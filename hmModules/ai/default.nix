@@ -148,6 +148,7 @@ with lib; let
   allIntegrations = skillIntegrations // {gateway = mcpGatewayIntegration;};
   renameSkills = import ../../builders/renameSkills.nix {inherit lib pkgs;};
   skillDir = import ../../builders/skillDir.nix {inherit lib pkgs;};
+  agentFor = import ../../builders/agentFor.nix {inherit lib pkgs;};
   enabledIntegrations = filter (integration: cfg.integrations.${integration}.enable) (attrNames skillIntegrations);
 
   # A namespaced skill is `<ns>:<short>` in Claude Code (a plugin) and
@@ -508,7 +509,7 @@ in {
       programs.claude-code = {
         enableMcpIntegration = true;
         commands = mkDefaultAttrs claudeCodeCommands;
-        agents = mkDefaultAttrs effectiveAgents;
+        agents = mkDefaultAttrs (mapAttrs (agentFor "claude-code") effectiveAgents);
         context = mkIf hasGlobalContext (mkDefault cfg.context);
         skills = mkIf (hasGlobalSkills && hasClaudeCodeSkillsOption) (mkDefaultSkills claudeCodeSkills);
         settings =
@@ -531,7 +532,7 @@ in {
     (optionalAttrs hasGithubCopilotCliOption (mkIf cfg.targets.github-copilot-cli {
       programs.github-copilot-cli = {
         enableMcpIntegration = true;
-        agents = mkDefaultAttrs effectiveAgents;
+        agents = mkDefaultAttrs (mapAttrs (agentFor "github-copilot-cli") effectiveAgents);
         context = mkIf hasGlobalContext (mkDefault cfg.context);
         skills = mkIf (hasGlobalSkills && hasGithubCopilotCliSkillsOption) (mkDefaultSkills effectiveSkills);
       };

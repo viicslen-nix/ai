@@ -78,6 +78,14 @@ renamed alias that warns.
 - **Credentials** stay with the consumer; this flake ships only backends that
   authenticate with OAuth or not at all.
 
+## Agents
+
+`content/agents/*.md` and integration agents are written in **opencode's
+frontmatter**; `builders/agentFor.nix` translates them for Claude Code (adds
+`name`, turns denied tools into `disallowedTools`) and Copilot CLI (a `tools`
+allowlist). Map any new opencode tool or permission key in its `claudeTools` /
+`copilotTools` tables, or the restriction is silently lost there.
+
 ## Verifying
 
 Evaluate the narrow option, never a whole system:
