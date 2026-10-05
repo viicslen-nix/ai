@@ -90,4 +90,9 @@ Evaluate the narrow option, never a whole system:
 - after touching the fan-out, `nix run .#<harness>` for each harness: a host
   imports every module and hides what a single-harness package exposes.
 
+`nix fmt` runs deadnix, statix, alejandra and shfmt (`treefmt.nix`); vendored
+skills under `content/skills` and `content/integrations/skills` are excluded and
+never reformatted. `nix flake check` adds `checks.statix`, which fails on what
+`statix fix` skips, mainly repeated keys.
+
 New files are invisible to the flake until `git add`ed.

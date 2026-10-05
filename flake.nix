@@ -39,6 +39,11 @@
 
     flake-parts.url = "github:hercules-ci/flake-parts";
 
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # home-manager is reached through omniflake's index rather than carrying an
     # input of its own; see the `inputs` binding in `outputs` below. Consumers
     # should point this at their own omniflake so only one copy is locked.
@@ -49,8 +54,8 @@
   };
 
   outputs = rawInputs @ {flake-parts, ...}: let
-    # home-manager under its old name, so every `inputs.home-manager` below —
-    # the two packages and `_module.args.inputs` — is unchanged.
+    # home-manager under its old name, so `inputs.home-manager` still resolves
+    # for mkHarness and in `aiInputs`.
     inputs = rawInputs // {home-manager = rawInputs.omniflake.flakes.home-manager;};
 
     # `aiInputs`, not `inputs`: home-manager's `extraSpecialArgs` wins over
@@ -70,6 +75,8 @@
     };
   in
     flake-parts.lib.mkFlake {inherit inputs;} {
+      imports = [inputs.treefmt-nix.flakeModule];
+
       systems = [
         "x86_64-linux"
         "aarch64-linux"
@@ -92,7 +99,12 @@
 
         llm = inputs.llm-agents.packages.${system};
       in {
-        formatter = pkgs.alejandra;
+        treefmt.imports = [./treefmt.nix];
+
+        # `statix fix`, which treefmt runs, silently skips what it cannot fix (W20).
+        checks.statix = pkgs.runCommandLocal "statix-check" {} ''
+          ${pkgs.lib.getExe pkgs.statix} check ${./.} && touch $out
+        '';
 
         # Everything `just` reaches for. `gh skill` is a preview command, so a
         # gh old enough to lack it makes every recipe here fail.
