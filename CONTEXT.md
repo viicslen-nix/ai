@@ -25,6 +25,22 @@ wrappers is four conflicting definitions, not one.
 The wrappers carry a `key` for the same reason the nixos repo's discovery does:
 two presets import the same module, and the module system dedupes only by key.
 
+## opencode v1 keeps its own nixpkgs
+
+opencode's `nix/node_modules.nix` is a fixed-output derivation whose hash lives
+in upstream's `nix/hashes.json`, computed by their CI with the bun of *their*
+pinned nixpkgs (bun 1.3.x, matching `packageManager`). With
+`inputs.nixpkgs.follows = "nixpkgs"` the derivation ran our bun 1.4.2 and
+produced different bytes, so every host rebuild died on a `node_modules` hash
+mismatch, taking `opencode1`, `op1` and `oh-my-opencode` with it. It had only
+worked before because the two buns happened to agree.
+
+Dropping the follows costs a second nixpkgs (eval and v1's closure) but keeps
+the hash upstream's to maintain. Overriding `hash` instead would mean hand-
+editing it on every bump. The overlay (`overlays.default`) still builds with
+whatever nixpkgs it is applied to, so use `inputs.opencode.packages`, never
+`pkgs.opencode`.
+
 ## What the extraction cost
 
 Two `mkEnabledOption` calls became `mkEnableOption … // {default = true;}`.

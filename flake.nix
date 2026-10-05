@@ -16,9 +16,9 @@
     };
 
     # opencode v1, which ships its own package and overlay.
+    # Don't add a nixpkgs follows: upstream's node_modules hash only matches its own pinned bun.
     opencode = {
       url = "github:anomalyco/opencode";
-      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     # Skill helpers: mkSkillAttrSet, selectFromInput, patchSkill.
