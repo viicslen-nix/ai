@@ -10,7 +10,7 @@ with lib; {
   # `programs.mcp.servers`, so it is routed like every other MCP server.
   mcps = {
     mempalace = {
-      command = lib.getExe' aiInputs.packages.packages.${pkgs.stdenv.hostPlatform.system}.python.mempalace "mempalace-mcp";
+      command = lib.getExe' cfg.mempalace.package "mempalace-mcp";
     };
   };
 
@@ -29,7 +29,18 @@ with lib; {
   options = {
     mempalace = {
       enable = mkEnableOption (mdDoc "mempalace integration for shared ai tooling");
+
+      package = mkOption {
+        type = types.package;
+        default = aiInputs.packages.packages.${pkgs.stdenv.hostPlatform.system}.python.mempalace;
+        defaultText = literalExpression "aiInputs.packages.packages.\${system}.python.mempalace";
+        description = mdDoc "The mempalace package. It provides the `mempalace` CLI and the `mempalace-mcp` server.";
+      };
     };
+  };
+
+  config = mkIf cfg.mempalace.enable {
+    home.packages = [cfg.mempalace.package];
   };
 
   warnings =

@@ -1,6 +1,8 @@
 {
   lib,
   cfg,
+  pkgs,
+  aiInputs,
   isAttrs,
 }:
 with lib; {
@@ -20,7 +22,18 @@ with lib; {
   options = {
     coderabbit = {
       enable = mkEnableOption (mdDoc "CodeRabbit commands, skills, and agent for shared ai tooling");
+
+      package = mkOption {
+        type = types.package;
+        default = aiInputs.packages.packages.${pkgs.stdenv.hostPlatform.system}.coderabbit;
+        defaultText = literalExpression "aiInputs.packages.packages.\${system}.coderabbit";
+        description = mdDoc "The CodeRabbit CLI the skills and agent run.";
+      };
     };
+  };
+
+  config = mkIf cfg.coderabbit.enable {
+    home.packages = [cfg.coderabbit.package];
   };
 
   warnings =

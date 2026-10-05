@@ -20,11 +20,13 @@
         isAttrs
         ;
     };
-    supersetIntegration = import ./integrations/superset.nix {inherit lib aiInputs;};
+    supersetIntegration = import ./integrations/superset.nix {inherit lib cfg pkgs aiInputs;};
     coderabbitIntegration = import ./integrations/coderabbit.nix {
       inherit
         lib
         cfg
+        pkgs
+        aiInputs
         isAttrs
         ;
     };
@@ -450,7 +452,8 @@
           ++ openwikiIntegration.warnings
           ++ orcaIntegration.warnings
           ++ browserHarnessIntegration.warnings
-          ++ jevIntegration.warnings;
+          ++ jevIntegration.warnings
+          ++ supersetIntegration.warnings;
 
       }
       # With the gateway on, clients see only the gateway; the real servers
@@ -522,6 +525,9 @@
           skills = mkIf (hasGlobalSkills && hasCodexSkillsOption) (mkDefaultSkills effectiveSkills);
         };
       }))
+      mempalaceIntegration.config
+      coderabbitIntegration.config
+      supersetIntegration.config
       openwikiIntegration.config
       orcaIntegration.config
       browserHarnessIntegration.config
