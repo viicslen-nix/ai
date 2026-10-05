@@ -12,7 +12,7 @@ description: use when the user asks to file, open, or create a PR
 - Check whether a pull request for this branch already exists. If one does, reuse it — update its title and body instead of opening another.
 
 ## PR Creation & Workflow
-- Prefer `gh` for PR discovery and creation.
+- Prefer `gh` for PR discovery and creation. Pass the body with `--body-file` so code fences and Mermaid survive shell quoting.
 - **Do not open draft pull requests.** Open real PRs so automated review bots are triggered.
 - If the user also requests to monitor or watch the pull request, continue directly with the **babysit-pr** skill.
 
@@ -21,27 +21,84 @@ description: use when the user asks to file, open, or create a PR
 - **Bad Title Example:** `PF server negotiate per message deflate on the websocket`.
 - **Good Title Example:** `PF server cut websocket frame size by 70% with gzipping`.
 
-## Description Formatting
-- Open the description with a simple explanation of the core problem based on the user's prompt, followed by a brief overview of the solution.
+## Body Template
+
+```markdown
+<one or two sentences: the problem, in the user's terms, then the fix>
+
+## Summary
+
+<diagram, diff-sketch, or tree>
+
+## Evidence
+
+<before / after>
+
+## Merge Danger
+
+**Door:** <one-way or two-way> — <optional: why>
+**Blast Radius:** <one or two words> — <optional: what could break, for whom>
+
+## Deployment / ## Runbook / ## Merge Checklist   (only when they apply)
+
+---
+<AI model and harness used to make the changes>
+```
+
+Skip preambles and keep prose brief. Use the repo's domain language — its `GLOSSARY.md` when one exists. Omit a section entirely when nothing belongs in it; never write "N/A". Summary, Evidence and Merge Danger are always present.
+
+### Opening lines
+- State the core problem as the user experienced it, then the fix in one sentence.
 - **Do not lead with an implementation inventory** or a list of file changes.
-  - **Bad Description Example:** `removed implicit workspace carryover from every new thread entry point...`.
-  - **Good Description Example:** `my new work tree default was ignored when starting new threads on existing work trees...`.
-- Follow the summary with the operational sections below whenever they apply. Omit a section entirely when nothing belongs in it — no "N/A" placeholders.
-- Include a blurb at the end of the PR description specifying the AI model and harness used to make the changes.
+  - **Bad:** `removed implicit workspace carryover from every new thread entry point...`.
+  - **Good:** `my new work tree default was ignored when starting new threads on existing work trees...`.
 
-## Visual Evidence
-When the change affects anything a user sees — UI, layout, styling, copy, rendered output — add a `## Screenshots` section with **before and after** images of each affected view.
+### Summary
+Show the change with the **smallest view that makes the key point clear**. Usually one, sometimes two; never all of them. Put each view next to the one line of text it supports, and keep only the calls, files, props, states and boundaries the reviewer needs.
 
-- Capture "before" from the base branch (e.g. a worktree at `origin/main`) and "after" from this branch, at the same viewport, data, and state so the two are directly comparable. Pair them side by side in a table with `Before` / `After` columns.
-- Use whatever browser or screenshot tooling is available.
-- The table holds real images only. Never fill a cell with a text description of what a screenshot would show. If a side cannot be captured, leave that side out; if neither can, drop the table and write one sentence saying why there are no screenshots.
-- Crop to the part that changed; add a full-page shot only when placement or context matters.
-- When the change is a multi-step flow or an interaction a still cannot show (animations, drag and drop, transitions, loading states), also record a short video or GIF of the "after" flow — at your discretion, and only when it communicates something the screenshots do not. Keep it short and trimmed to the flow.
-- `gh` cannot upload attachments to a PR. Commit the assets to a dedicated branch (not the PR branch) and embed them by URL, e.g. `https://github.com/<owner>/<repo>/raw/<assets-branch>/<file>`. GIFs render inline; a video linked this way shows as a link, so prefer a GIF for short flows. If none of this works, tell the user which files to drag into the PR description.
-- Skip the section for changes with no visual effect.
+| The point is… | Show it as |
+| --- | --- |
+| logic or an algorithm | pseudocode |
+| runtime control flow | a call tree |
+| UI structure | a component tree, with state and module boundaries that matter |
+| file responsibility or a broad refactor | a shallow file tree with one-line `#` notes |
+| interaction or data flow between parts | a Mermaid `sequenceDiagram` / `flowchart` |
+| what changes in a shape that already exists | a `diff` block of that tree or pseudocode (`+`/`-` lines) |
+| a mostly-new block the reviewer needs to see whole | the full code block |
+
+A diff-sketch is usually the strongest choice for a modification. Match it to the topic, e.g. a call-tree change:
+
+```diff
+ submitForm
+   createSession
+     persistPrompt
++    expandSkillMention
+     launchAgent
+```
+
+### Evidence
+Concrete before/after proof that the change works. Pick the best tier the environment allows:
+
+- **S-tier — screenshots**, whenever the change is visible (UI, layout, styling, copy, rendered output).
+  - Capture "before" from the base branch (e.g. a worktree at `origin/main`) and "after" from this branch, at the same viewport, data and state. Pair them in a table with `Before` / `After` columns, cropped to what changed; add a full-page shot only when placement matters.
+  - The table holds real images only. Never fill a cell with a description of what a screenshot would show. If one side cannot be captured, leave it out; if neither can, drop the table and say why in one sentence.
+  - For a multi-step flow or an interaction a still cannot show (animation, drag and drop, transitions, loading states), add a short trimmed GIF of the "after" flow when it communicates something the stills do not.
+  - `gh` cannot upload attachments. Commit assets to a dedicated branch (not the PR branch) and embed by URL: `https://github.com/<owner>/<repo>/raw/<assets-branch>/<file>`. If that fails, tell the user which files to drag into the description.
+- **A-tier — execution**: the exact test that failed before and passes now (named, with its assertion as pseudocode), or the command output before and after. Run it on both sides; don't claim a "before" you did not observe.
+
+  ```markdown
+  - **Before:** `saves twice → returns cached result` ✗ (wrote file twice)
+    **After:** ✓
+  ```
+
+- Below that, say plainly what was verified and how (typecheck, manual check) and what was not.
+
+### Merge Danger
+- **Door:** a **two-way door** is cheap to walk back (revert the commit, flip a flag). A **one-way door** is not: destructive migrations, data deletion or rewrites, published API/schema changes consumers adopt, sent emails or webhooks, irreversible infra. Say which, and why if it isn't obvious.
+- **Blast Radius:** who and what is affected if it's wrong — one or two words (e.g. `internal-only`, `checkout`, `all tenants`), then the plausible failure modes: layout shift, mobile breakage, broken consumers, performance, permissions, cost. Consider all of them; list only the real ones.
 
 ## Deployment & Runbook Sections
-The description must tell whoever merges and ships the PR what they have to *do*, not just what changed. Read the diff for anything that does not take effect by deploying the code alone: migrations, backfills, artisan/rake/manage commands, cache or search-index rebuilds, feature flags, new env vars or secrets, config changes, new infrastructure (queues, buckets, topics, tables, DNS, IAM), cron or worker changes, and dependency order between services or repos.
+Tell whoever merges and ships the PR what they have to *do*, not just what changed. Read the diff for anything that does not take effect by deploying the code alone: migrations, backfills, artisan/rake/manage commands, cache or search-index rebuilds, feature flags, new env vars or secrets, config changes, new infrastructure (queues, buckets, topics, tables, DNS, IAM), cron or worker changes, and dependency order between services or repos. These items are usually what makes a door one-way — keep Merge Danger consistent with them.
 
 - **`## Deployment`** — infrastructure and configuration that must exist before or alongside the deploy, e.g. "create the `orders-export` SQS queue and grant the worker role `sqs:SendMessage` before deploying", new env vars with where their values come from, or "deploy `api` before `web`".
 - **`## Runbook`** — commands that must be run by hand after deployment, as copy-pasteable code blocks with the environment they run in, whether they are idempotent, how to verify they worked, and how to roll them back.
