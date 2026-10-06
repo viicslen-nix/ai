@@ -17,10 +17,12 @@ with lib; let
 
   root = removeSuffix "/" cfg.baseUrl;
   hasKey = cfg.apiKeyFile != null;
+  # home-manager agenix reports its path with a literal `${XDG_RUNTIME_DIR}`, which only a shell expands.
+  keyLink = "${config.xdg.stateHome}/ai-proxy/${cfg.name}-api-key";
   # A keyless proxy still needs something in the key slot for most clients.
   keyCommand =
     if hasKey
-    then ''"$(cat ${escapeShellArg cfg.apiKeyFile})"''
+    then ''"$(cat ${escapeShellArg keyLink})"''
     else "none";
 
   apis = ["anthropic" "openai" "gemini"];
@@ -141,7 +143,7 @@ with lib; let
       baseURL = baseUrlFor api;
       apiKey =
         if hasKey
-        then "{file:${cfg.apiKeyFile}}"
+        then "{file:${keyLink}}"
         else "none";
     };
     models = mapAttrs (id: m:
@@ -173,7 +175,7 @@ with lib; let
       baseURL = baseUrlFor api;
       apiKey =
         if hasKey
-        then "{file:${cfg.apiKeyFile}}"
+        then "{file:${keyLink}}"
         else "none";
     };
     models = mapAttrs (id: m: {modelID = id;} // optionalAttrs (m.name != null) {inherit (m) name;}) (modelsOf api);
@@ -208,7 +210,7 @@ with lib; let
       };
     apiKey =
       if hasKey
-      then "!cat ${escapeShellArg cfg.apiKeyFile}"
+      then "!cat ${escapeShellArg keyLink}"
       else "none";
     models = mapAttrsToList (id: m:
       {
@@ -368,7 +370,7 @@ in {
           // optionalAttrs hasKey {
             auth = {
               command = "cat";
-              args = [cfg.apiKeyFile];
+              args = [keyLink];
             };
           };
         home.packages = mkIf (config.programs.codex.package != null) [codexLauncher];
@@ -410,6 +412,14 @@ in {
     ))
 
     (mkIf (ai.enable && cfg != null) {
+      home.activation.aiProxyKeyLink = mkIf hasKey (hm.dag.entryAfter ["writeBoundary"] ''
+        (
+          XDG_RUNTIME_DIR="''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+          run mkdir -p ${escapeShellArg (dirOf keyLink)}
+          run ln -sfn "${escape ["\\" "\"" "`"] cfg.apiKeyFile}" ${escapeShellArg keyLink}
+        )
+      '');
+
       warnings =
         optional (cfg.models == {} && (cfg.targets.opencode || cfg.targets.opencode1 || cfg.targets.pi))
         "`modules.programs.ai.proxy.models` is empty, so opencode and pi get no proxy provider; neither discovers a custom provider's models.";

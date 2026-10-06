@@ -689,6 +689,14 @@ How each one takes the key without the store:
   gemini-3.8-flash-high` requests `gemini-3.8-flash`), which CLIProxyAPI only
   serves under an alias.
 
+Every consumer reads the key through one symlink,
+`$XDG_STATE_HOME/ai-proxy/<name>-api-key`, which activation points at
+`apiKeyFile`. home-manager's agenix reports that path with a literal
+`${XDG_RUNTIME_DIR}`, and only a shell expands it: Codex's `auth` command,
+opencode's `{file:}` and pi's `!cat` all read it verbatim, and a quoted `cat`
+in the launchers did too (`claude-proxy` failed on its first real run).
+Activation expands it once, so the link holds the real `/run/user/<uid>` path.
+
 pi's models.json is a file of ours, not pi.nix's `models` option: that one is
 installed only when absent, so a later change would never reach the machine.
 
