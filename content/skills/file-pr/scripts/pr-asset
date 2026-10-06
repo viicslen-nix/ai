@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Commits images to the orphan assets branch without checking it out, then prints the URL to embed for each.
+#   pr-asset [--branch B] [--dry-run] FILE...
+# Default branch: assets/pr-screenshots (created on first use). Files land at the branch root
+# under their basename, overwriting a same-named file, so name them <topic>-before.png / <topic>-after.png.
+# --dry-run builds the commit locally and prints the URLs without pushing.
+set -euo pipefail
+
+branch=assets/pr-screenshots dry_run=0 files=()
+while (($#)); do
+  case $1 in
+    --branch) branch=$2; shift ;;
+    --dry-run) dry_run=1 ;;
+    *) files+=("$1") ;;
+  esac
+  shift
+done
+((${#files[@]})) || { echo "usage: pr-asset [--branch B] [--dry-run] FILE..." >&2; exit 1; }
+
+repo=$(gh repo view --json nameWithOwner -q .nameWithOwner)
+parent=""
+git fetch -q origin "refs/heads/$branch" 2>/dev/null && parent=$(git rev-parse FETCH_HEAD)
+
+GIT_INDEX_FILE=$(mktemp -u)
+export GIT_INDEX_FILE
+trap 'rm -f "$GIT_INDEX_FILE"' EXIT
+if [[ -n $parent ]]; then git read-tree "$parent"; else git read-tree --empty; fi
+
+for f in "${files[@]}"; do
+  git update-index --add --cacheinfo "100644,$(git hash-object -w "$f"),$(basename "$f")"
+done
+commit=$(git commit-tree "$(git write-tree)" ${parent:+-p "$parent"} -m "docs: add PR screenshots")
+
+if ((dry_run)); then
+  echo "dry-run: would push $commit to $branch"
+else
+  git push -q origin "$commit:refs/heads/$branch"
+fi
+for f in "${files[@]}"; do
+  echo "https://github.com/$repo/raw/$branch/$(basename "$f")"
+done

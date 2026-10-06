@@ -1,0 +1,141 @@
+#!/usr/bin/env bash
+# Blocks until the PR needs attention, prints one summary, exits. The first run prints at once.
+#   pr-watch [--once] [--interval S] [--timeout S] [--reset]
+#   --once     print the current summary and exit, never block
+#   --reset    forget the cursor and snapshot (keeps the own-comment list)
+# Common flags: -R owner/repo, --pr N (default: current branch's PR).
+# Wakes on: merged/closed, new head SHA, checks settled or a new failure, review decision,
+# merge conflict, new comments/reviews not posted through pr-threads, CodeRabbit rate limit lifted.
+# Exit 3: another pr-watch already runs for this PR.
+source "$(dirname "$(readlink -f "$0")")/_common.sh" "$@"
+set -- "${ARGS[@]}"
+
+INTERVAL=60 TIMEOUT=6900 ONCE=0
+while (($#)); do
+  case $1 in
+    --once) ONCE=1 ;;
+    --interval) INTERVAL=$2; shift ;;
+    --timeout) TIMEOUT=$2; shift ;;
+    --reset) rm -f "$STATE_DIR"/{cursor,snapshot,ratelimit} && : >"$STATE_DIR/seen" ;;
+    *) die "unknown argument: $1" ;;
+  esac
+  shift
+done
+
+pidfile=$STATE_DIR/pid
+if [[ -f $pidfile ]] && kill -0 "$(<"$pidfile")" 2>/dev/null; then
+  echo "already watching $REPO#$PR (pid $(<"$pidfile")); wait for its notification"
+  exit 3
+fi
+echo $$ >"$pidfile"
+trap 'rm -f "$pidfile"' EXIT
+
+RATE_MARK='rate limited by coderabbit'
+
+# Prints a JSON report of the PR's current state and every comment/review not yet seen.
+poll() {
+  local since="" pr items
+  [[ -f $STATE_DIR/cursor ]] && since="&since=$(date -u -d "@$(($(<"$STATE_DIR/cursor") - 120))" +%FT%TZ)"
+  pr=$(gh pr view "$PR" -R "$REPO" --json state,headRefOid,reviewDecision,mergeStateStatus,statusCheckRollup,url) || return 1
+  items=$({
+    gh api --paginate "repos/$REPO/issues/$PR/comments?per_page=100$since" \
+      --jq '.[] | {kind:"comment", id, author:.user.login, updated:.updated_at, body}' &&
+      gh api --paginate "repos/$REPO/pulls/$PR/comments?per_page=100$since" \
+        --jq '.[] | {kind:"inline", id, author:.user.login, updated:.updated_at, path, line:(.line // .original_line), body}' &&
+      gh api --paginate "repos/$REPO/pulls/$PR/reviews?per_page=100" \
+        --jq '.[] | select(.submitted_at) | {kind:"review", id, author:.user.login, updated:.submitted_at, state, body}'
+  } | jq -s .) || return 1
+
+  jq -n --argjson pr "$pr" --argjson items "$items" --arg mark "$RATE_MARK" \
+    --rawfile own "$STATE_DIR/own" --rawfile seen "$STATE_DIR/seen" '
+    ($own | split("\n")) as $own | ($seen | split("\n")) as $seen
+    | def ratelimited: .kind == "comment" and ((.body // "") | contains($mark));
+      def key: if ratelimited then "\(.kind):\(.id):\(.updated)" else "\(.kind):\(.id)" end;
+      def wait_secs: (.body | capture("[Ww]ait (?<w>[^*\n]*?) (for|before|until)") // {w: ""}).w
+        | [match("(\\d+) (hour|minute|second)"; "g") | .captures
+           | (.[0].string | tonumber) * {hour: 3600, minute: 60, second: 1}[.[1].string]] | add // 0;
+    [$pr.statusCheckRollup[]
+      | {name: (.name // .context),
+         s: (if .__typename == "CheckRun" then
+               (if .status != "COMPLETED" then "pending"
+                elif (.conclusion | IN("SUCCESS", "NEUTRAL", "SKIPPED")) then "pass" else "fail" end)
+             else
+               (if .state == "SUCCESS" then "pass"
+                elif (.state | IN("PENDING", "EXPECTED")) then "pending" else "fail" end)
+             end)}] as $checks
+    | [$checks[] | select(.s == "fail") | .name] as $failing
+    | ($checks | map(select(.s == "pending")) | length) as $pending
+    | [$items[]
+        | select((.id | tostring | IN($own[])) | not)
+        | select((.body // "") | contains("<!-- model:") | not)
+        | select(.kind != "review" or .body != "" or .state != "COMMENTED")
+        | . + {key: key}
+        | select(.key | IN($seen[]) | not)] as $new
+    | {state: $pr.state, url: $pr.url, sha: $pr.headRefOid[:7],
+       decision: (($pr.reviewDecision // "") | if . == "" then "NONE" else . end), merge: $pr.mergeStateStatus,
+       pass: ($checks | map(select(.s == "pass")) | length), $pending, $failing,
+       snapshot: "\($pr.state)|\($pr.headRefOid)|\($pr.reviewDecision)|\($pr.mergeStateStatus == "DIRTY")|\($pending > 0)|\($failing | sort | join(","))",
+       ratelimit_ready: ([$new[] | select(ratelimited) | (.updated | fromdateiso8601) + wait_secs] | max),
+       coderabbit_reviewed: any($new[]; .kind == "review" and (.author | startswith("coderabbitai"))),
+       new: [$new[] | {key, line: "  \(.kind) \(.id) \(.author)\(if .path then " \(.path):\(.line)" else "" end)\(if .state then " \(.state)" else "" end) — \(.body // "" | gsub("<!--[\\s\\S]*?-->"; "") | gsub("<[^>]+>"; "") | gsub("\\s+"; " ") | .[:200])"}]}'
+}
+
+print_summary() { # $1: report JSON, rest: event lines
+  local r=$1
+  shift
+  jq -r '"PR \(.url) \(.state)",
+    "head \(.sha) | review: \(.decision) | merge: \(.merge)",
+    "checks: \(.pending) pending, \(.failing | length) fail, \(.pass) pass\(if (.failing | length) > 0 then " | failing: \(.failing | join(", "))" else "" end)"' <<<"$r"
+  (($#)) && printf 'event: %s\n' "$@"
+  jq -r 'if (.new | length) > 0 then "new (\(.new | length)):", (.new[].line) else empty end' <<<"$r"
+  if [[ -f $STATE_DIR/ratelimit ]]; then
+    local ready
+    ready=$(<"$STATE_DIR/ratelimit")
+    echo "coderabbit: rate-limited until $(date -d "@$ready" +%H:%M) (~$(((ready - $(date +%s) + 59) / 60))m); pr-watch wakes when it lifts"
+  fi
+}
+
+started=$(date +%s) errors=0
+while :; do
+  now=$(date -u +%s)
+  if ! report=$(poll); then
+    ((++errors >= 5)) && die "gh failed 5 polls in a row"
+    sleep "$INTERVAL"
+    continue
+  fi
+  errors=0
+
+  events=()
+  state=$(jq -r .state <<<"$report")
+  snapshot=$(jq -r .snapshot <<<"$report")
+  if [[ ! -f $STATE_DIR/snapshot ]]; then
+    events+=("initial snapshot")
+  elif [[ $snapshot != "$(<"$STATE_DIR/snapshot")" ]]; then
+    events+=("status changed")
+  fi
+  [[ $state != OPEN ]] && events+=("PR is $state: stop babysitting")
+  (($(jq '.new | length' <<<"$report"))) && events+=("new feedback")
+
+  [[ $(jq .coderabbit_reviewed <<<"$report") == true ]] && rm -f "$STATE_DIR/ratelimit"
+  ready=$(jq -r '.ratelimit_ready // empty' <<<"$report")
+  [[ -n $ready ]] && echo "$ready" >"$STATE_DIR/ratelimit"
+  if [[ -f $STATE_DIR/ratelimit ]] && (($(<"$STATE_DIR/ratelimit") <= now)); then
+    rm -f "$STATE_DIR/ratelimit"
+    events+=("coderabbit rate limit lifted: request a review with \`pr-threads comment '@coderabbitai review'\`")
+  fi
+
+  timed_out=$(($(date +%s) - started >= TIMEOUT))
+  if ((${#events[@]} || ONCE || timed_out)); then
+    if ((timed_out && !${#events[@]})); then
+      events+=("no change in ${TIMEOUT}s; relaunch to keep watching")
+    elif ((!${#events[@]})); then
+      events+=("no change")
+    fi
+    print_summary "$report" "${events[@]}"
+    echo "$now" >"$STATE_DIR/cursor"
+    echo "$snapshot" >"$STATE_DIR/snapshot"
+    jq -r '.new[].key' <<<"$report" >>"$STATE_DIR/seen"
+    exit 0
+  fi
+  sleep "$INTERVAL"
+done

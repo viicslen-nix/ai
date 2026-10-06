@@ -7,7 +7,7 @@ description: use when the user asks to file, open, or create a PR
 ## Pre-Filing Checks
 - Read the repo instructions and inspect `git status` first.
 - Commit outstanding changes exactly like the standalone `commit` command: separate them into logical groups and commit each.
-- Review the diff locally against `origin/main` to verify its contents match the original goal.
+- Review the diff locally against `origin/<base>`, where `<base>` is the repo default branch (`gh repo view --json defaultBranchRef -q .defaultBranchRef.name`), to verify its contents match the original goal.
 - Push the current branch.
 - Check whether a pull request for this branch already exists. If one does, reuse it — update its title and body instead of opening another.
 
@@ -80,10 +80,10 @@ A diff-sketch is usually the strongest choice for a modification. Match it to th
 Concrete before/after proof that the change works. Pick the best tier the environment allows:
 
 - **S-tier — screenshots**, whenever the change is visible (UI, layout, styling, copy, rendered output).
-  - Capture "before" from the base branch (e.g. a worktree at `origin/main`) and "after" from this branch, at the same viewport, data and state. Pair them in a table with `Before` / `After` columns, cropped to what changed; add a full-page shot only when placement matters.
+  - Capture "before" from the base branch (a worktree at `origin/<base>`) and "after" from this branch, at the same viewport, data and state. Pair them in a table with `Before` / `After` columns, cropped to what changed; add a full-page shot only when placement matters.
   - The table holds real images only. Never fill a cell with a description of what a screenshot would show. If one side cannot be captured, leave it out; if neither can, drop the table and say why in one sentence.
   - For a multi-step flow or an interaction a still cannot show (animation, drag and drop, transitions, loading states), add a short trimmed GIF of the "after" flow when it communicates something the stills do not.
-  - `gh` cannot upload attachments. Commit assets to a dedicated branch (not the PR branch) and embed by URL: `https://github.com/<owner>/<repo>/raw/<assets-branch>/<file>`. If that fails, tell the user which files to drag into the description.
+  - `gh` cannot upload attachments. Host images with `scripts/pr-asset FILE...` (beside this file): it commits them to the orphan `assets/pr-screenshots` branch without a checkout and prints the `https://github.com/<owner>/<repo>/raw/assets/pr-screenshots/<file>` URL to embed. Name files `<topic>-before.png` / `<topic>-after.png`; a same-named file is overwritten. If the push fails, tell the user which files to drag into the description.
 - **A-tier — execution**: the exact test that failed before and passes now (named, with its assertion as pseudocode), or the command output before and after. Run it on both sides; don't claim a "before" you did not observe.
 
   ```markdown

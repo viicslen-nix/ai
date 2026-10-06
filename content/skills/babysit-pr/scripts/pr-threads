@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# Review threads and PR comments, posted so pr-watch can tell them apart from reviewer feedback.
+#   pr-threads list [--all]          unresolved threads (--all: resolved too)
+#   pr-threads reply THREAD_ID BODY  reply inside a thread (BODY "-" reads stdin)
+#   pr-threads resolve THREAD_ID
+#   pr-threads comment BODY          top-level PR comment (BODY "-" reads stdin)
+# Common flags: -R owner/repo, --pr N (default: current branch's PR), --dry-run.
+source "$(dirname "$(readlink -f "$0")")/_common.sh" "$@"
+set -- "${ARGS[@]}"
+
+body_arg() {
+  [[ ${1:-} == - ]] && cat || printf '%s' "${1:?BODY required}"
+}
+
+dry() {
+  ((DRY_RUN)) || return 1
+  echo "dry-run: $*"
+}
+
+cmd=${1:-list}
+shift || true
+case $cmd in
+  list)
+    all=false
+    [[ ${1:-} == --all ]] && all=true
+    # ponytail: first 100 threads only; paginate reviewThreads if a PR ever exceeds that.
+    gh api graphql -f owner="${REPO%/*}" -f name="${REPO#*/}" -F number="$PR" -f query='
+      query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){
+        reviewThreads(first:100){nodes{id isResolved isOutdated path line originalLine
+          first:comments(first:1){totalCount nodes{databaseId author{login} body}}
+          last:comments(last:1){nodes{author{login}}}}}}}}' |
+      jq -r --argjson all "$all" '
+        .data.repository.pullRequest.reviewThreads.nodes[]
+        | select($all or (.isResolved | not))
+        | .first.nodes[0] as $c
+        | "\(.id) \(.path):\(.line // .originalLine)\(if .isOutdated then " (outdated)" else "" end)\(if .isResolved then " (resolved)" else "" end) \($c.author.login) [\(.first.totalCount) comments, last: \(.last.nodes[0].author.login)]\n    \($c.body | gsub("<!--[\\s\\S]*?-->"; "") | gsub("\\s+"; " ") | .[:200])"'
+    ;;
+  reply)
+    thread=${1:?THREAD_ID required}
+    body=$(body_arg "${2:-}")
+    dry "reply to $thread on $REPO#$PR: $body" && exit
+    id=$(gh api graphql -f thread="$thread" -f body="$body" -f query='
+      mutation($thread:ID!,$body:String!){addPullRequestReviewThreadReply(input:{pullRequestReviewThreadId:$thread,body:$body}){comment{databaseId url}}}' \
+      -q .data.addPullRequestReviewThreadReply.comment.databaseId)
+    record_own "$id"
+    echo "replied: $id"
+    ;;
+  resolve)
+    thread=${1:?THREAD_ID required}
+    dry "resolve $thread on $REPO#$PR" && exit
+    gh api graphql -f thread="$thread" -f query='
+      mutation($thread:ID!){resolveReviewThread(input:{threadId:$thread}){thread{isResolved}}}' \
+      -q '"resolved: \(.data.resolveReviewThread.thread.isResolved)"'
+    ;;
+  comment)
+    body=$(body_arg "${1:-}")
+    dry "comment on $REPO#$PR: $body" && exit
+    id=$(gh api "repos/$REPO/issues/$PR/comments" -f body="$body" -q .id)
+    record_own "$id"
+    echo "commented: $id"
+    ;;
+  *) die "unknown command: $cmd (list|reply|resolve|comment)" ;;
+esac

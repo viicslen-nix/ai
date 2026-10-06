@@ -4,13 +4,20 @@ description: use when the user asks to monitor, watch, or babysit a PR
 
 # Babysit PR Skill
 
+## Scripts
+Both live in `scripts/` beside this file. `-R owner/repo` and `--pr N` default to the current branch's PR.
+
+- `scripts/pr-watch` blocks until the PR needs attention, prints one summary (state, head SHA, checks with failing names, review decision, merge state, new comments and reviews, CodeRabbit rate limit), then exits. The first run prints at once; `--once` never blocks.
+- `scripts/pr-threads list | reply THREAD_ID BODY | comment BODY | resolve THREAD_ID` handles review threads and PR comments. A `BODY` of `-` reads stdin; `--dry-run` prints instead of posting.
+
 ## Monitoring & CI Loop
-- Use harness tools to monitor PR activity if available; otherwise, poll for new review comments and CI status checks. Prefer `gh`; `gh api` reaches the review-thread endpoints the porcelain commands do not.
-- Watch feedback from **every** reviewer — human reviewers, review threads, review states, inline comments, issue comments, and any bot (`coderabbitai`, `github-advanced-security`, `sonarcloud`, `codecov`, `renovate`, custom org bots, …). Do not filter by author; a finding counts no matter who left it.
-- Only process checks and review comments that are **newer than the latest push**.
-- Keep an eye on changes to `main` and rebase as needed to keep the branch fresh.
-- Loop verify → group → fix → single push per batch until no outstanding comment needs action, all CI checks pass green, and all required approvals are secured (by a human or by whichever bot gates the repo).
-- Stop immediately if the PR is closed or merged, even with checks or approvals outstanding, and report that terminal state.
+- Every wait is `pr-watch` launched through the Bash tool with `run_in_background: true` and `timeout: 7200000`; its exit notification is your wake-up. It sleeps internally, which the harness allows. Run one per PR: a second one exits 3 and names the running PID.
+- Post every reply and PR comment through `pr-threads`. Your comments post under the user's login; `pr-threads` records their IDs so `pr-watch` reports only feedback from others.
+- Act on feedback from **every** reviewer — humans and any bot (`coderabbitai`, `github-advanced-security`, `sonarcloud`, `codecov`, `renovate`, custom org bots, …). A finding counts no matter who left it.
+- When `merge:` shows `BEHIND` or `DIRTY`, rebase on the default branch.
+- A CodeRabbit rate limit shows its ready time; relaunch `pr-watch`, which wakes when it lifts, then run `pr-threads comment '@coderabbitai review'`.
+- Loop `pr-watch` → verify → group → fix → single push per batch → relaunch `pr-watch`, until no outstanding comment needs action, all CI checks pass green, and all required approvals are secured (by a human or by whichever bot gates the repo).
+- When `pr-watch` reports the PR merged or closed, stop at once, even with checks or approvals outstanding, and report that terminal state.
 
 ## Handling Feedback & Failures
 - **Verify every finding against the current code** before modifying anything. Drop the ones that are outdated, already fixed, purely stylistic noise the repo does not follow, or wrong — note the reason, you will reply with it.
@@ -37,14 +44,9 @@ description: use when the user asks to monitor, watch, or babysit a PR
 
 ## Replying In-Thread
 - Answer every finding **inside its own review thread** — what was fixed and in which commit, or the concrete reason it was skipped (already fixed in `<sha>`, the code does X not Y, the repo deliberately does it this way). A bare "done" leaves the next reader guessing.
-- `gh pr comment` posts to the conversation tab and does not reach any thread. Reply to an inline comment with
-  `gh api repos/{owner}/{repo}/pulls/{pr}/comments/{comment_id}/replies -f body='…'`,
-  using the `id` of the **first** comment in that thread (a reply's own id will not do).
-- Enumerate open threads with
-  `gh api graphql -f query='{repository(…){pullRequest(number:N){reviewThreads(first:100){nodes{id isResolved comments(first:1){nodes{databaseId path line body author{login}}}}}}}}'`.
-  `gh pr view` flattens them and loses the thread grouping. Skip nodes where `isResolved` is already true.
-- Only a review's top-level summary body, which has no file or line, has no thread to answer in. That one, and only that one, gets a plain PR comment.
-- **Never resolve a thread.** Reply and leave it open — the reviewer who raised it, or another human, decides when it is settled. `resolveReviewThread` is off limits.
+- `pr-threads list` gives each unresolved thread's ID; answer with `pr-threads reply THREAD_ID -` and the body on stdin.
+- Only a review's top-level summary body, which has no file or line, has no thread to answer in. That one, and only that one, gets `pr-threads comment`.
+- Leave every thread open after replying: the reviewer who raised it, or another human, decides when it is settled. `pr-threads resolve` runs only when the user asks for it.
 
 ## Comment Formatting & Media
 - Format comments posted on the maintainer's behalf as follows:
