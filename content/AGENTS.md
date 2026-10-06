@@ -73,6 +73,7 @@ Before starting multi-step work, state in one line what will run in parallel.
 - When you need to search docs, use `context7` tools.
 - If you are unsure how to do something, use `gh_grep` to search code examples from GitHub.
 - When you need to ask questions to the user, use the `question` tool.
+- Commits are signed through 1Password, which prompts once per commit. Before a rebase or cherry-pick that replays many commits, ask the user whether to sign each one or to run it with `-c commit.gpgsign=false`.
 
 ## Code Comments
 - Default to no comment. Code shows *how*; comment only to carry *why* — a non-obvious constraint, deliberate deviation, gotcha, or workaround.
