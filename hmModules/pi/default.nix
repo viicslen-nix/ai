@@ -114,6 +114,8 @@ in {
 
       programs.pi.coding-agent = {
         environment = mkDefault envFile;
+        # ~/.agents/skills holds runtime installers' stale copies of skills we ship.
+        settings.skills = ["!${config.home.homeDirectory}/.agents/skills/**"];
         mcp.mcpServers = mkIf (mcpServers != {}) mcpServers;
       };
 

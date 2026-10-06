@@ -629,7 +629,7 @@ as files, which pi discovers on its own, and hands only MCP to pi.nix.
 `mkHarness` takes `package` as a function of the evaluated config for this:
 the binary to exec is pi.nix's `finalPackage`, not the bare package.
 
-Three things are less obvious:
+Four things are less obvious:
 
 - The agent dir is `~/.config/pi`, like the other harnesses, not pi's own
   `~/.pi/agent`. It reaches pi.nix as an environment *file* that its launcher
@@ -645,6 +645,12 @@ Three things are less obvious:
   `hmModules/pi`: that would read `aiInputs`, which for an exported module is a
   `_module.args` value, and `imports` cannot depend on those without infinite
   recursion.
+- pi also loads `~/.agents/skills`, where the Orca and Superset apps install
+  their skills at runtime. Every one there is a stale copy of a skill this
+  flake ships (or an old name of one, like Orca's `computer-use`), and each
+  printed a collision at startup, so `settings.skills` excludes the directory
+  by absolute path. A pattern relative to the agent dir cannot reach it: pi
+  matches each source against its own base dir.
 
 MCP servers are reshaped into pi's `mcp.json` form: opencode's `oauth.enabled`
 is dropped, because pi signs in whenever a server asks, and `env.<x>.file`
