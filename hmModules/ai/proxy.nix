@@ -28,6 +28,15 @@ with lib; let
   apis = ["anthropic" "openai" "gemini"];
   modelsOf = api: filterAttrs (_: m: m.api == api) cfg.models;
   providerId = api: "${cfg.name}-${api}";
+  providerName = api: "${cfg.label} (${
+    {
+      anthropic = "Anthropic";
+      openai = "OpenAI";
+      gemini = "Gemini";
+    }.${
+      api
+    }
+  })";
   apiOf = model: cfg.models.${model}.api or null;
 
   on = target: path:
@@ -130,7 +139,7 @@ with lib; let
   '';
 
   opencode1Provider = api: {
-    name = "${cfg.name} (${api})";
+    name = providerName api;
     npm =
       {
         anthropic = "@ai-sdk/anthropic";
@@ -163,6 +172,7 @@ with lib; let
   };
 
   opencode2Provider = api: {
+    name = providerName api;
     package =
       {
         anthropic = "@opencode/ai/providers/anthropic";
@@ -192,6 +202,7 @@ with lib; let
     };
 
   piProvider = api: {
+    name = providerName api;
     baseUrl =
       {
         anthropic = root;
@@ -296,12 +307,20 @@ in {
         launchers.codex.model = "gpt-6-sol";
       }
     '';
-    type = types.nullOr (types.submodule {
+    type = types.nullOr (types.submodule ({config, ...}: {
       options = {
         name = mkOption {
           type = types.strMatching "[a-zA-Z0-9_-]+";
           default = "proxy";
           description = mdDoc "Suffix of the launchers (`claude-<name>`) and prefix of the opencode/pi provider ids (`<name>-anthropic`).";
+        };
+
+        label = mkOption {
+          type = types.str;
+          default = toUpper (substring 0 1 config.name) + substring 1 (-1) config.name;
+          defaultText = literalExpression "the capitalized `name`";
+          example = "CLIProxyAPI";
+          description = mdDoc "Display name of the providers in opencode and pi: `<label> (Anthropic)`, `<label> (OpenAI)`, `<label> (Gemini)`.";
         };
 
         baseUrl = mkOption {
@@ -348,7 +367,7 @@ in {
           antigravity-cli = targetOption "Add the `agy-<name>` launcher.";
         };
       };
-    });
+    }));
   };
 
   config = mkMerge [

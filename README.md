@@ -226,7 +226,8 @@ modules.programs.ai.proxy = {
 
 Nothing replaces a harness's own login. opencode (v1 and v2) and pi get one
 provider per API, `proxy-anthropic`, `proxy-openai` and `proxy-gemini`, with
-the listed models. The single-provider harnesses get a second command instead:
+the listed models, shown as `Proxy (Anthropic)` and so on (`label` renames
+them). The single-provider harnesses get a second command instead:
 `claude-proxy`, `codex-proxy`, `copilot-proxy` and `agy-proxy` (`name` sets the
 suffix). The key is read from the file at launch, never written to the store.
 
