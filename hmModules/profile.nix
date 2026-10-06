@@ -98,6 +98,12 @@ in {
       };
     })
 
+    # With the gateway on, pi sees one server of a few meta tools, which is not
+    # worth pi's default of reaching them only through codemode scripts.
+    (optionalAttrs (options.modules.programs ? pi) {
+      modules.programs.pi.mcpExposure = mkIf config.modules.programs.ai.integrations.gateway.enable (mkDefault "direct");
+    })
+
     {
       modules.programs.ai = {
         enable = true;

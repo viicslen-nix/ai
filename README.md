@@ -6,12 +6,12 @@
 
 [![flake-parts](https://img.shields.io/badge/built_with-flake--parts-7EBAE4?style=flat-square&logo=nixos&logoColor=white)](https://flake.parts)
 [![Home Manager](https://img.shields.io/badge/Home_Manager-modules-41439A?style=flat-square)](https://github.com/nix-community/home-manager)
-[![Harnesses](https://img.shields.io/badge/harnesses-Claude_Code_·_opencode_·_Codex_·_Copilot_·_Antigravity-555?style=flat-square)](#try-it)
+[![Harnesses](https://img.shields.io/badge/harnesses-Claude_Code_·_opencode_·_Codex_·_Copilot_·_Antigravity_·_pi-555?style=flat-square)](#try-it)
 
 </div>
 
 Declare your context once as `modules.programs.ai`, and it reaches Claude Code,
-opencode (v2, with v1 alongside), Codex, GitHub Copilot CLI and Antigravity in
+opencode (v2, with v1 alongside), Codex, GitHub Copilot CLI, Antigravity and pi in
 whatever shape each one expects — Markdown commands here, a TOML block there, a
 plugin directory somewhere else.
 
@@ -33,6 +33,7 @@ nix run github:viicslen-nix/ai#opencode
 nix run github:viicslen-nix/ai#codex
 nix run github:viicslen-nix/ai#copilot
 nix run github:viicslen-nix/ai#antigravity
+nix run github:viicslen-nix/ai#pi
 ```
 
 Each is the real harness wrapped in its configuration: the wrapper syncs the
@@ -77,7 +78,7 @@ never adds it separately.
 
 | Output | What |
 | --- | --- |
-| `packages.<system>.claude` / `codex` / `copilot` / `antigravity` | A harness wrapped with its config |
+| `packages.<system>.claude` / `codex` / `copilot` / `antigravity` / `pi` | A harness wrapped with its config |
 | `packages.<system>.opencode` (= `default`, `opencode2`) | opencode v2, launcher `opencode2` |
 | `packages.<system>.opencode1` | opencode v1, with an `op1` alias |
 | `packages.<system>.oh-my-opencode` | opencode v1 with oh-my-opencode, in `~/.config/oh-my-opencode` |
@@ -87,6 +88,7 @@ never adds it separately.
 | `homeManagerModules.claude-code` | Global Claude Code settings, marketplaces and plugins |
 | `homeManagerModules.opencode` (= `opencode2`) / `opencode1` | opencode v2 / v1 |
 | `homeManagerModules.opencode-service` | The per-user opencode web service |
+| `homeManagerModules.pi` | [pi.nix](https://github.com/lukasl-dev/pi.nix)'s module (`programs.pi.coding-agent`), agent dir in `~/.config/pi` |
 | `nixosModules.opencode-web` | opencode as a web server for every home-manager user |
 | `devShells.<system>.default` | `gh`, `git`, `just`, `alejandra`, `column` for the recipes |
 | `formatter.<system>`, `checks.<system>` | treefmt, its `treefmt` check, and a `statix` check |
@@ -164,6 +166,7 @@ harness's module is not imported:
 | `github-copilot-cli` | ✓ | ✓ | — | ✓ | ✓ |
 | `antigravity-cli` | ✓ | — | ✓ | ✓ | ✓ |
 | `codex` | ✓ | — | — | ✓ | ✓ |
+| `pi` | ✓ | — | ✓ | ✓ | ✓ |
 
 Agents are written in opencode's frontmatter and translated for the rest:
 Claude Code gets a `name` and `disallowedTools`, Copilot a `name` and a `tools`

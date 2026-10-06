@@ -17,7 +17,9 @@
   modules ? [],
   # Config fragment that turns the module on.
   enable ? {},
-  # The binary the wrapper ultimately execs.
+  # The binary the wrapper ultimately execs, or a function from the evaluated
+  # home-manager config to it — for a module whose launcher wraps the package
+  # (pi.nix's `finalPackage`).
   package,
   mainProgram ? name,
   # Env var that points the harness at its config dir. `null` means the harness
@@ -46,6 +48,7 @@
     "antigravity-cli"
     "github-copilot-cli"
     "codex"
+    "pi"
   ];
 
   hmConfig = inputs.home-manager.lib.homeManagerConfiguration {
@@ -89,6 +92,11 @@
     owned
   );
 
+  launcher =
+    if lib.isFunction package
+    then package hmConfig.config
+    else package;
+
   syncScript = pkgs.runCommand "ai-sync" {} ''
     install -Dm755 ${./sync.sh} $out/bin/ai-sync
     patchShebangs $out/bin/ai-sync
@@ -97,7 +105,7 @@
     config_dir="$HOME/${destDir}"
     ${syncScript}/bin/ai-sync ${manifest} "$config_dir" ${destDir}
     ${lib.optionalString (configDirVar != null) ''export ${configDirVar}="$config_dir"''}
-    exec ${lib.getExe' package mainProgram} "$@"
+    exec ${lib.getExe' launcher mainProgram} "$@"
   '';
 in
   if aliases == []

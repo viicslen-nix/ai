@@ -196,6 +196,7 @@ and a target only forwards what its module accepts:
 | github-copilot-cli | ✓ | ✓ | — | ✓ | ✓ |
 | antigravity-cli | ✓ | — | ✓ | ✓ | ✓ |
 | codex | ✓ | — | — | ✓ | ✓ |
+| pi | ✓ | — | ✓ | ✓ | ✓ |
 
 Each target is gated on an option *existing* (`hasAttrByPath`), never on a
 module being imported, which is what lets a consumer take this flake with only
@@ -305,7 +306,8 @@ a host than it costs here.
 
 ```
 builders/      mkHarness.nix + sync.sh — every package is built from these
-hmModules/     home-manager modules; opencode/ holds v1, v2, oh-my and the service
+hmModules/     home-manager modules; opencode/ holds v1, v2, oh-my and the service;
+               pi/ is the fan-out half of pi.nix's module
 nixosModules/  opencode-web
 content/       every markdown payload
 ```
@@ -609,3 +611,44 @@ neither harness has a primary mode, and opencode model IDs are not theirs.
 The opencode-only `browser-automation` skill went at the same time. It
 described an opencode browser plugin's tools, and browser work now goes through
 the global browser skills.
+
+## pi is pi.nix's module plus files of our own
+
+pi comes from `lukasl-dev/pi.nix`, not `llm-agents`: its home-manager module
+brings the package (cached on pi.cachix.org, hence no nixpkgs follows), the
+bubblewrap jail, and a launcher that merges `settings` and `mcp` into the
+agent dir with jq on every start. pi rewrites both files from its own UI, so a
+merge suits them better than a store link.
+
+That module writes no files at all. Rules, skills and prompt templates become
+`--append-system-prompt`, `--skill` and `--prompt-template` flags on its
+launcher. Feeding the shared content through those would only reach a `pi`
+started through that exact launcher, and leave `mkHarness` nothing to sync. So
+`hmModules/pi` writes `AGENTS.md`, `skills/` and `prompts/` into the agent dir
+as files, which pi discovers on its own, and hands only MCP to pi.nix.
+`mkHarness` takes `package` as a function of the evaluated config for this:
+the binary to exec is pi.nix's `finalPackage`, not the bare package.
+
+Three things are less obvious:
+
+- The agent dir is `~/.config/pi`, like the other harnesses, not pi's own
+  `~/.pi/agent`. It reaches pi.nix as an environment *file* that its launcher
+  sources, so `${XDG_CONFIG_HOME:-$HOME/.config}` expands at launch. The
+  attribute form is escaped into a literal at eval time, which for
+  `nix run .#pi` is the throwaway `/tmp/runner`. A consumer who sets
+  `environment` replaces that file, which is why the module warns when
+  `PI_CODING_AGENT_DIR` goes missing.
+- pi.nix's module requires `osConfig`, which only home-manager's NixOS module
+  passes. `hmModules/pi` defaults `_module.args.osConfig` to `{}`; a special
+  arg wins over it.
+- The two are paired in `flake.nix` (`piModule`), not by an `imports` inside
+  `hmModules/pi`: that would read `aiInputs`, which for an exported module is a
+  `_module.args` value, and `imports` cannot depend on those without infinite
+  recursion.
+
+MCP servers are reshaped into pi's `mcp.json` form: opencode's `oauth.enabled`
+is dropped, because pi signs in whenever a server asks, and `env.<x>.file`
+becomes pi's `!cat <path>` command value. pi's default exposure, `codemode`,
+hides a server's tools behind scripts. The profile sets `direct` only while the
+gateway is on, when pi sees one server with a handful of meta tools; for the
+full server list it would declare every tool to the model.

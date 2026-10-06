@@ -21,6 +21,13 @@
       url = "github:anomalyco/opencode";
     };
 
+    # pi's package and home-manager module. Don't add a nixpkgs follows:
+    # pi.cachix.org only hits against upstream's own pin.
+    pi = {
+      url = "github:lukasl-dev/pi.nix";
+      inputs.flake-parts.follows = "flake-parts";
+    };
+
     # Skill helpers: mkSkillAttrSet, selectFromInput, patchSkill.
     viicslen-lib = {
       url = "github:viicslen-nix/lib";
@@ -73,6 +80,10 @@
       key = "viicslen-ai:${name}";
       imports = [argsModule path];
     };
+
+    # Paired here, not imported from ./hmModules/pi: an `imports` reading
+    # `aiInputs` recurses, since that arg comes from `_module.args`.
+    piModule.imports = [inputs.pi.homeModules.default ./hmModules/pi];
   in
     flake-parts.lib.mkFlake {inherit inputs;} {
       imports = [inputs.treefmt-nix.flakeModule];
@@ -199,6 +210,19 @@
             configDirVar = "CODEX_HOME";
           };
 
+          pi = mkHarness {
+            name = "pi";
+            modules = [piModule];
+            enable = {
+              programs.pi.coding-agent.enable = true;
+              modules.programs.aiProfile.enable = true;
+            };
+            target = "pi";
+            # pi.nix's launcher, which merges settings.json and mcp.json in first.
+            package = hm: hm.programs.pi.coding-agent.finalPackage;
+            configDirVar = "PI_CODING_AGENT_DIR";
+          };
+
           copilot = mkHarness {
             name = "copilot";
             enable = {
@@ -244,6 +268,7 @@
             (mkHmModule "claude-code" ./hmModules/claude-code)
             (mkHmModule "opencode" ./hmModules/opencode/v2.nix)
             (mkHmModule "opencode1" ./hmModules/opencode/v1.nix)
+            (mkHmModule "pi" piModule)
           ];
 
           ai = mkHmModule "ai" ./hmModules/ai;
@@ -253,6 +278,7 @@
           # The old name for what `opencode` now is.
           opencode2 = mkHmModule "opencode" ./hmModules/opencode/v2.nix;
           opencode-service = mkHmModule "opencode-service" ./hmModules/opencode/service.nix;
+          pi = mkHmModule "pi" piModule;
           profile = mkHmModule "profile" ./hmModules/profile.nix;
         };
 

@@ -120,6 +120,7 @@ with lib; let
   # codex has no `commands` or `agents`, so `context` is what proves it exists.
   hasCodexOption = hasAttrByPath ["programs" "codex" "context"] options;
   hasCodexSkillsOption = hasAttrByPath ["programs" "codex" "skills"] options;
+  hasPiOption = hasAttrByPath ["modules" "programs" "pi" "context"] options;
 
   effectiveMcps =
     cfg.mcps
@@ -398,6 +399,12 @@ in {
         default = true;
         description = mdDoc "Forward context and skills to codex. It takes no commands or agents.";
       };
+
+      pi = mkOption {
+        type = types.bool;
+        default = true;
+        description = mdDoc "Forward context, commands (as prompt templates) and skills to pi. It has no agents.";
+      };
     };
 
     integrations = mapAttrs (integration: module:
@@ -542,6 +549,14 @@ in {
         enableMcpIntegration = true;
         context = mkIf hasGlobalContext (mkDefault cfg.context);
         skills = mkIf (hasGlobalSkills && hasCodexSkillsOption) (mkDefaultSkills effectiveSkills);
+      };
+    }))
+    (optionalAttrs hasPiOption (mkIf cfg.targets.pi {
+      modules.programs.pi = {
+        enableMcpIntegration = true;
+        commands = mkDefaultAttrs opencodeCommands;
+        context = mkIf hasGlobalContext (mkDefault cfg.context);
+        skills = mkIf hasGlobalSkills (mkDefaultSkills effectiveSkills);
       };
     }))
     mempalaceIntegration.config
