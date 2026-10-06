@@ -205,6 +205,33 @@ options and no stylix theming.
 
 </details>
 
+<details>
+<summary><b>An LLM proxy for every harness</b></summary>
+
+`modules.programs.ai.proxy` is unset here; a host points it at a proxy that
+speaks the Anthropic, OpenAI Responses and Gemini APIs, such as CLIProxyAPI:
+
+```nix
+modules.programs.ai.proxy = {
+  baseUrl = "https://cliproxy.tail1234.ts.net";   # root, no /v1
+  apiKeyFile = config.age.secrets.cliproxyapi-api-key.path;
+  models = {
+    claude-opus-5-5 = { api = "anthropic"; reasoning = true; };
+    gpt-6-sol = { api = "openai"; reasoning = true; };
+    gemini-3-flash.api = "gemini";
+  };
+  launchers.codex.model = "gpt-6-sol";
+};
+```
+
+Nothing replaces a harness's own login. opencode (v1 and v2) and pi get one
+provider per API, `proxy-anthropic`, `proxy-openai` and `proxy-gemini`, with
+the listed models. The single-provider harnesses get a second command instead:
+`claude-proxy`, `codex-proxy`, `copilot-proxy` and `agy-proxy` (`name` sets the
+suffix). The key is read from the file at launch, never written to the store.
+
+</details>
+
 ## Credentials
 
 None live here, deliberately: every MCP server this flake ships authenticates

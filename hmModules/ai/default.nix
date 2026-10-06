@@ -293,11 +293,13 @@ with lib; let
   claudeCodeCommands = mapAttrs toMarkdownCommand normalizedCommands;
   antigravityCommands = mapAttrs toAntigravityCommand normalizedCommands;
 in {
-  imports = map (integration:
-    mkRenamedOptionModule
-    ["modules" namespace name integration]
-    ["modules" namespace name "integrations" integration])
-  (attrNames allIntegrations);
+  imports =
+    [./proxy.nix]
+    ++ map (integration:
+      mkRenamedOptionModule
+      ["modules" namespace name integration]
+      ["modules" namespace name "integrations" integration])
+    (attrNames allIntegrations);
 
   options.modules.${namespace}.${name} = {
     enable = mkEnableOption (mdDoc "shared AI tooling") // {default = true;};

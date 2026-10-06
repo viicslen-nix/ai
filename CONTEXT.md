@@ -652,3 +652,48 @@ becomes pi's `!cat <path>` command value. pi's default exposure, `codemode`,
 hides a server's tools behind scripts. The profile sets `direct` only while the
 gateway is on, when pi sees one server with a handful of meta tools; for the
 full server list it would declare every tool to the model.
+
+## One LLM proxy, two shapes
+
+`modules.programs.ai.proxy` (`hmModules/ai/proxy.nix`) is null here and set
+per host, because the URL and key are the host's. The `ai` module owns it, not
+each harness module, so one host setting reaches all of them.
+
+Harnesses that hold several providers (opencode v1 and v2, pi) get the proxy
+*beside* their own logins: one provider per API family, because CLIProxyAPI
+serves Claude over Anthropic Messages, GPT over OpenAI Responses and Gemini
+over its own API, and translating everything through chat-completions loses
+prompt caching and thinking. None of them reads a custom provider's model list
+from `/v1/models`, hence the shared `models` catalog.
+
+Claude Code, Codex, Copilot CLI and Antigravity take one endpoint per process,
+so each gets a `<bin>-<name>` launcher and the plain command keeps its login.
+How each one takes the key without the store:
+
+- Claude: `ANTHROPIC_AUTH_TOKEN` read in the launcher. Settings-file `env`
+  would land in the store, and outranks the shell anyway.
+- Codex: the provider in config.toml with `auth.command = cat <file>`; the
+  launcher only selects it with `-c model_provider=<name>`. `wire_api = "chat"`
+  is gone from Codex, so Responses is the only choice.
+- Copilot: `COPILOT_PROVIDER_*` in the launcher, the only interface it has. The
+  model's `api` picks `anthropic` or `openai` with the Responses or
+  completions wire format.
+- Antigravity: `modelProvider = "gemini"` is read only from
+  `~/.gemini/antigravity-cli/settings.json`, and agy has no config-dir
+  variable, so setting it there would make plain `agy` demand a key too. The
+  launcher runs agy under `~/.local/share/agy-<name>` as HOME: the real home's
+  entries are linked in so git, gh and the rest still work, and `.gemini` is
+  rebuilt from home-manager's files plus its own settings.json, which keeps
+  its conversations apart. agy ignores `GEMINI_MODEL`, so the model goes in as
+  `--model`. It sends the API name without the tier suffix (`--model
+  gemini-3.8-flash-high` requests `gemini-3.8-flash`), which CLIProxyAPI only
+  serves under an alias.
+
+pi's models.json is a file of ours, not pi.nix's `models` option: that one is
+installed only when absent, so a later change would never reach the machine.
+
+Testing against a live proxy has two traps. opencode v2 hands `run` to its
+background service, which keeps the config it started with, so a test config
+needs `--standalone` (and a host needs the service restarted after a switch).
+And `nix run .#pi` exports `PI_CODING_AGENT_DIR` itself, overriding one set
+for the test.
