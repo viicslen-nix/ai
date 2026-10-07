@@ -115,9 +115,11 @@ async function render($: any, e: any, next: (e: any) => Promise<RenderElement>):
       if (p.origin?.kind !== 'composer' || p.text.length > MAX_PROMPT) return next(e)
       return (
         <Box flexDirection="row" marginTop={1}>
-          <Text backgroundColor="claude" color="inverseText" bold>
-            {` ${GLYPH.account} `}
-          </Text>
+          <Box flexShrink={0} paddingX={1} backgroundColor="ide">
+            <Text color="inverseText" bold>
+              {GLYPH.account}
+            </Text>
+          </Box>
           <Box flexGrow={1} flexShrink={1} paddingX={1} backgroundColor="userMessageBackground">
             <Text>{p.text}</Text>
           </Box>

@@ -81,6 +81,8 @@ anything it does not recognise go to `next(e)` untouched. What it learned:
   them onto two lines.
 - Colours are theme keys (`claude`, `bashBorder`, `autoAccept`,
   `userMessageBackground`) so light and dark themes both work. Glyphs are Nerd
-  Font codicons (`nf-cod-*`), all present in FiraCode Nerd Font Mono.
+  Font codicons (`nf-cod-*`), all present in FiraCode Nerd Font Mono. Prompts
+  take `ide` and replies `claude`, so the two sides of the conversation never
+  share a colour.
 - `TurnDuration` drops the engine's `done 12:28 PM`: the props carry no
   timestamp, and one taken at first render would be wrong after a resume.
