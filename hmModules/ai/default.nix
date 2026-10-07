@@ -113,6 +113,7 @@ with lib; let
   hasOpencodeSkillsOption = hasAttrByPath ["programs" "opencode2" "skills"] options;
   hasClaudeCodeOption = hasAttrByPath ["programs" "claude-code" "commands"] options;
   hasClaudeCodeSkillsOption = hasAttrByPath ["programs" "claude-code" "skills"] options;
+  hasClaudePluginDirsOption = hasAttrByPath ["modules" "programs" "claude-code" "pluginDirs"] options;
   hasAntigravityOption = hasAttrByPath ["programs" "antigravity-cli" "commands"] options;
   hasAntigravitySkillsOption = hasAttrByPath ["programs" "antigravity-cli" "skills"] options;
   hasGithubCopilotCliOption = hasAttrByPath ["programs" "github-copilot-cli" "agents"] options;
@@ -523,10 +524,14 @@ in {
         skills = mkIf (hasGlobalSkills && hasClaudeCodeSkillsOption) (mkDefaultSkills claudeCodeSkills);
         settings =
           optionalAttrs (effectiveHooks != {}) {hooks = effectiveHooks;}
-          // optionalAttrs (claudePlugins != {}) {
+          // optionalAttrs (claudePlugins != {} && !hasClaudePluginDirsOption) {
             env.CLAUDE_CODE_PLUGIN_DIRS = concatStringsSep ":" (map toString (attrValues claudePlugins));
           };
       };
+    }))
+    # A second string definition of CLAUDE_CODE_PLUGIN_DIRS would conflict, so join the claude-code module's list when it is there.
+    (optionalAttrs (hasClaudeCodeOption && hasClaudePluginDirsOption) (mkIf cfg.targets.claude-code {
+      modules.programs.claude-code.pluginDirs = attrValues claudePlugins;
     }))
     (optionalAttrs hasAntigravityOption (mkIf cfg.targets.antigravity-cli {
       programs.antigravity-cli = {

@@ -17,6 +17,18 @@ with lib; let
       inherit repo;
     };
   };
+
+  modsDir = ../../content/claude-mods;
+  modNames = attrNames (filterAttrs (_: type: type == "directory") (builtins.readDir modsDir));
+  # A `path:` flake copies gitignored files too, so the generated types are dropped here.
+  modSource = name:
+    builtins.path {
+      name = "claude-mod-${name}";
+      path = modsDir + "/${name}";
+      filter = path: _:
+        !(elem (baseNameOf path) ["tests" "tsconfig.json" ".gitignore"])
+        && !(hasSuffix "/.claude-plugin/types" (toString path));
+    };
 in {
   options.modules.${namespace}.${name} = {
     enable = mkEnableOption (mdDoc "global Claude Code settings") // {default = true;};
@@ -40,51 +52,70 @@ in {
       default = {};
       description = mdDoc "Extra `settings.json` entries, merged over the defaults below.";
     };
+
+    pluginDirs = mkOption {
+      type = types.listOf types.path;
+      default = [];
+      description = mdDoc "Plugin directories loaded through `CLAUDE_CODE_PLUGIN_DIRS`, the one writer of that variable.";
+    };
+
+    mods = genAttrs modNames (mod: {
+      enable = mkEnableOption (mdDoc "the `${mod}` mod from `content/claude-mods`");
+    });
   };
 
-  config = mkIf cfg.enable {
-    # Don't drop `force`: the next activation then aborts on a stale settings.json.backup.
-    home.file."${config.programs.claude-code.configDir}/settings.json".force = true;
+  config = mkMerge [
+    {
+      modules.${namespace}.${name}.pluginDirs = map modSource (filter (mod: cfg.mods.${mod}.enable) modNames);
 
-    # Carries ~/.claude.json with it, and herdr resolves its hook directory
-    # through the CLAUDE_CONFIG_DIR this exports.
-    programs.claude-code.configDir = "${config.xdg.configHome}/claude";
+      programs.claude-code.settings = mkIf (cfg.pluginDirs != []) {
+        env.CLAUDE_CODE_PLUGIN_DIRS = concatStringsSep ":" (map toString cfg.pluginDirs);
+      };
+    }
+    (mkIf cfg.enable {
+      # Don't drop `force`: the next activation then aborts on a stale settings.json.backup.
+      home.file."${config.programs.claude-code.configDir}/settings.json".force = true;
 
-    programs.claude-code.settings =
-      recursiveUpdate {
-        model = "opus[1m]";
-        effortLevel = "high";
+      # Carries ~/.claude.json with it, and herdr resolves its hook directory
+      # through the CLAUDE_CONFIG_DIR this exports.
+      programs.claude-code.configDir = "${config.xdg.configHome}/claude";
 
-        autoCompactWindow = 500000;
+      programs.claude-code.settings =
+        recursiveUpdate {
+          model = "opus[1m]";
+          effortLevel = "high";
 
-        permissions.defaultMode = "auto";
+          autoCompactWindow = 500000;
 
-        statusLine = {
-          type = "command";
-          # Keep this a store path; `npx -y ccstatusline@latest` re-resolves every render.
-          command = getExe aiInputs.packages.packages.${pkgs.stdenv.hostPlatform.system}.ccstatusline;
-          padding = 0;
-          refreshInterval = 10;
-        };
+          permissions.defaultMode = "auto";
 
-        # `programs.claude-code.marketplaces` only emits `source = "directory"`
-        # entries, so github ones are written straight through.
-        extraKnownMarketplaces = mapAttrs (_: mkMarketplace) cfg.marketplaces;
-        enabledPlugins = cfg.plugins;
+          statusLine = {
+            type = "command";
+            # Keep this a store path; `npx -y ccstatusline@latest` re-resolves every render.
+            command = getExe aiInputs.packages.packages.${pkgs.stdenv.hostPlatform.system}.ccstatusline;
+            padding = 0;
+            refreshInterval = 10;
+          };
 
-        workflowKeywordTriggerEnabled = true;
-        syntaxHighlightingDisabled = false;
-        alwaysThinkingEnabled = true;
-        autoMemoryEnabled = false;
-        tui = "fullscreen";
-        skipDangerousModePermissionPrompt = true;
-        theme = "auto";
-        editorMode = "vim";
-        verbose = false;
-        remoteControlAtStartup = false;
-        inputNeededNotifEnabled = true;
-        agentPushNotifEnabled = true;
-      }
-      cfg.settings;
-  };
+          # `programs.claude-code.marketplaces` only emits `source = "directory"`
+          # entries, so github ones are written straight through.
+          extraKnownMarketplaces = mapAttrs (_: mkMarketplace) cfg.marketplaces;
+          enabledPlugins = cfg.plugins;
+
+          workflowKeywordTriggerEnabled = true;
+          syntaxHighlightingDisabled = false;
+          alwaysThinkingEnabled = true;
+          autoMemoryEnabled = false;
+          tui = "fullscreen";
+          skipDangerousModePermissionPrompt = true;
+          theme = "auto";
+          editorMode = "vim";
+          verbose = false;
+          remoteControlAtStartup = false;
+          inputNeededNotifEnabled = true;
+          agentPushNotifEnabled = true;
+        }
+        cfg.settings;
+    })
+  ];
 }

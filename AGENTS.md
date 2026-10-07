@@ -43,6 +43,13 @@ plugin, every other harness gets flat `<ns>-<short>`; `short` drops an upstream
 - **Claude plugins load through `CLAUDE_CODE_PLUGIN_DIRS`** in `settings.json`
   `env`, from the store. Keep them out of `skills/`: opencode scans
   `~/.claude/skills` recursively and lists every short name as its own skill.
+  Add a directory to `modules.programs.claude-code.pluginDirs`, never to the
+  variable itself: a second definition of it is a conflict.
+- **Claude Code mods** live in `content/claude-mods/<name>/`; each directory
+  gets `modules.programs.claude-code.mods.<name>.enable` (off by default). Run
+  `claude plugin validate` and `claude plugin test` in it, and try it live with
+  `claude --plugin-dir <dir>`, which hot-reloads and writes the gitignored
+  `.claude-plugin/types/` and `tsconfig.json` for `tsc`.
 - **References** rewrite per view: `ns:x`, the flat name, `../old/` links, and
   a bare old name only when it is hyphenated. Generic names (`setup`, `page`)
   are prose elsewhere.

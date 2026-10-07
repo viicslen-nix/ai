@@ -46,3 +46,41 @@ The variable only reaches processes started after a re-login. A Claude Code
 already running when the option lands keeps writing to `~/.claude`, so the
 migration is `mv ~/.claude ~/.config/claude` plus a temporary
 `~/.claude -> .config/claude` symlink, dropped once the session restarts.
+
+## `pluginDirs` and `mods`
+
+`CLAUDE_CODE_PLUGIN_DIRS` is one string in `settings.json`, and home-manager's
+JSON type refuses two different definitions of it. The ai module's integration
+plugins and this module's mods both need it, so `pluginDirs` is the list they
+join and this module the only writer. The ai module still writes the variable
+itself when imported without this one (`hasClaudePluginDirsOption`).
+
+Mods are copied to the store with `builtins.path` and a filter: a local `path:`
+flake ignores `.gitignore`, so the `.claude-plugin/types/` and `tsconfig.json`
+Claude Code writes beside a `--plugin-dir` mod would otherwise reach the store
+and change its hash on every Claude Code update. A read-only mod directory loads
+fine; Claude Code just skips writing the types there.
+
+## `readable-output`
+
+Restyles the transcript through `ui.render`, terminal only; remote surfaces and
+anything it does not recognise go to `next(e)` untouched. What it learned:
+
+- Ink's `Box` here has no per-side borders, so a left accent bar is a
+  `width={1}` Box with a `backgroundColor`, stretched by the row to the
+  content's height. `borderStyle` would add a top and bottom row to every
+  result.
+- Replies, tool results and the diff keep the engine's own drawing (the
+  `{type: 'engine'}` node from `next(e)`) inside the bar, so markdown,
+  highlighting and clickable paths survive. Only the tool row header and the
+  collapsed group line are drawn from scratch; the result body, the diff and
+  the running command's progress are separate sites.
+- The spinner is a column with a top margin and a tip row beneath, so wrapping
+  it in a row misaligns everything; the mod rewrites its `word` prop instead.
+- Badges sit in a `flexShrink={0}` Box, or a neighbour taking the width wraps
+  them onto two lines.
+- Colours are theme keys (`claude`, `bashBorder`, `autoAccept`,
+  `userMessageBackground`) so light and dark themes both work. Glyphs are Nerd
+  Font codicons (`nf-cod-*`), all present in FiraCode Nerd Font Mono.
+- `TurnDuration` drops the engine's `done 12:28 PM`: the props carry no
+  timestamp, and one taken at first render would be wrong after a resume.
