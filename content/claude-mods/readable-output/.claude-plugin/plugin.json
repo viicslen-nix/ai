@@ -1,0 +1,8 @@
+{
+  "name": "readable-output",
+  "version": "0.1.0",
+  "description": "Restyles the transcript: tool rows as icon badges with status and a summary, results and replies in colored blocks, prompts on a tinted band, and a mode badge on the spinner",
+  "author": {
+    "name": "viicslen"
+  }
+}

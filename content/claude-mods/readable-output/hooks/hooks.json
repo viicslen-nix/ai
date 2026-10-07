@@ -1,0 +1,4 @@
+{
+  "description": "Transcript restyling: ToolUse, ToolResult, ToolGroup, UserMessage, AssistantMessage, Spinner and TurnDuration",
+  "modules": ["./register.tsx"]
+}
