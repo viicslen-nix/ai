@@ -29,13 +29,36 @@ export const GLYPH = {
   watch: '\ueb7c',
 } as const
 
-// Theme keys, so every color follows the person's light or dark theme.
+// Muted mid-tones that read on light and dark themes alike (the theme's own
+// keys are pastel, and a mod cannot tell which theme is on). Each channel is
+// 0x48, 0x7e or 0xb0: chalk quantises v/51 linearly, so without truecolor
+// these land on the cube's 5f, 87 and af instead of collapsing together.
+export const PALETTE = {
+  ink: '#dadada',
+  claude: '#7e4848',
+  user: '#487eb0',
+  rail: '#444444',
+  shell: '#7e487e',
+  read: '#487e7e',
+  write: '#7e48b0',
+  web: '#7e7e48',
+  plan: '#b07e48',
+  skill: '#487e48',
+  mcp: '#48487e',
+  ask: '#b04848',
+  other: '#6c6c6c',
+  done: '#487e48',
+  // Not muted: a skill call should catch the eye.
+  loudSkill: '#00d787',
+  loudInk: '#121212',
+} as const
+
 export type Style = { icon: string; color: string; label: string }
 
-const SHELL = { icon: GLYPH.terminal, color: 'bashBorder' }
-const READ = { color: 'suggestion' }
-const WRITE = { color: 'autoAccept' }
-const WEB = { color: 'ide' }
+const SHELL = { icon: GLYPH.terminal, color: PALETTE.shell }
+const READ = { color: PALETTE.read }
+const WRITE = { color: PALETTE.write }
+const WEB = { color: PALETTE.web }
 
 const STYLES: Record<string, Omit<Style, 'label'> & { label?: string }> = {
   Bash: SHELL,
@@ -51,22 +74,22 @@ const STYLES: Record<string, Omit<Style, 'label'> & { label?: string }> = {
   NotebookEdit: { ...WRITE, icon: GLYPH.notebook },
   WebFetch: { ...WEB, icon: GLYPH.globe, label: 'Fetch' },
   WebSearch: { ...WEB, icon: GLYPH.telescope, label: 'Search' },
-  Task: { icon: GLYPH.robot, color: 'claude', label: 'Agent' },
-  Agent: { icon: GLYPH.robot, color: 'claude' },
-  TodoWrite: { icon: GLYPH.checklist, color: 'planMode', label: 'Todos' },
-  ExitPlanMode: { icon: GLYPH.checklist, color: 'planMode', label: 'Plan' },
-  Skill: { icon: GLYPH.book, color: 'remember' },
-  AskUserQuestion: { icon: GLYPH.question, color: 'permission', label: 'Ask' },
+  Task: { icon: GLYPH.robot, color: PALETTE.claude, label: 'Agent' },
+  Agent: { icon: GLYPH.robot, color: PALETTE.claude },
+  TodoWrite: { icon: GLYPH.checklist, color: PALETTE.plan, label: 'Todos' },
+  ExitPlanMode: { icon: GLYPH.checklist, color: PALETTE.plan, label: 'Plan' },
+  Skill: { icon: GLYPH.book, color: PALETTE.skill },
+  AskUserQuestion: { icon: GLYPH.question, color: PALETTE.ask, label: 'Ask' },
 }
 
 const MCP = /^mcp__(.+?)__(.+)$/
 
 export function styleOf(tool: string): Style {
   const mcp = MCP.exec(tool)
-  if (mcp) return { icon: GLYPH.plug, color: 'merged', label: mcp[1] ?? tool }
+  if (mcp) return { icon: GLYPH.plug, color: PALETTE.mcp, label: mcp[1] ?? tool }
   const style = STYLES[tool]
   if (style) return { label: tool, ...style }
-  return { icon: GLYPH.tools, color: 'subtle', label: tool }
+  return { icon: GLYPH.tools, color: PALETTE.other, label: tool }
 }
 
 export type Summary = {
@@ -161,13 +184,13 @@ export function summaryOf(tool: string, raw: unknown, output: unknown, cwd: stri
   return { main: firstLine(str(first)) }
 }
 
-export type Status = { icon: string; color: string }
+export type Status = { icon: string; color: string; dim?: boolean }
 
 export function statusOf(call: { isRunning: boolean; isErrored: boolean; isInterrupted: boolean }): Status {
-  if (call.isInterrupted) return { icon: GLYPH.interrupted, color: 'warning' }
+  if (call.isInterrupted) return { icon: GLYPH.interrupted, color: 'warning', dim: true }
   if (call.isErrored) return { icon: GLYPH.error, color: 'error' }
   if (call.isRunning) return { icon: GLYPH.running, color: 'warning' }
-  return { icon: GLYPH.ok, color: 'success' }
+  return { icon: GLYPH.ok, color: 'success', dim: true }
 }
 
 export function durationOf(ms: number): string {

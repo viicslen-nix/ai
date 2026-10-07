@@ -74,6 +74,20 @@ describe('readable-output', () => {
     expect(await $.ui.render(queued)).toEqual(ENGINE)
   })
 
+  test('a result shows only for an error or a file change', async ($, on) => {
+    engineBelow(on)
+    const result = (tool: string, isErrored: boolean) =>
+      ({
+        surface: 'terminal',
+        component: 'ToolResult',
+        requestId: `toolu_${tool}`,
+        props: { tool_use_id: `toolu_${tool}`, tool, output: {}, isErrored },
+      }) as unknown as RenderInput<'ToolResult'>
+    expect(JSON.stringify(await $.ui.render(result('Bash', false)))).not.toContain('"engine"')
+    expect(JSON.stringify(await $.ui.render(result('Bash', true)))).toContain('"engine"')
+    expect(JSON.stringify(await $.ui.render(result('Edit', false)))).toContain('"engine"')
+  })
+
   test('remote surfaces are left to the engine', async ($, on) => {
     engineBelow(on)
     expect(await $.ui.render({ ...BASH, surface: 'desktop' } as unknown as typeof BASH)).toEqual(ENGINE)

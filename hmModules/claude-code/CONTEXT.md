@@ -75,14 +75,38 @@ anything it does not recognise go to `next(e)` untouched. What it learned:
   highlighting and clickable paths survive. Only the tool row header and the
   collapsed group line are drawn from scratch; the result body, the diff and
   the running command's progress are separate sites.
+- Like opencode, it folds what you skim: a tool's result shows only when it
+  errs or changes a file (Edit, Write, NotebookEdit), and narration (text the
+  model followed with a tool call) is one dim line. Neither site says when
+  ctrl+o is open, so both stay folded there too. A Skill call is the one
+  bright badge, so you notice it at once.
+- Narration can't be told from the row alone: the engine draws a text block
+  when it ends, before the tool call that follows it arrives, and
+  `$.session.messages()` doesn't have that call yet either. So `narration.ts`
+  watches each `turn.step` stream, and a row whose text is still in a live step
+  waits (at most 1.5s) for the step's next text, tool or stop chunk. Block
+  starts and ends arrive as `engine` chunks in between and must not settle the
+  wait. A resumed session falls back to the transcript.
+- `claude plugin validate` only follows `$` into functions in the same file,
+  so `narration.ts` keeps state and pure logic, and every `$` call stays in
+  `register.tsx`.
 - The spinner is a column with a top margin and a tip row beneath, so wrapping
   it in a row misaligns everything; the mod rewrites its `word` prop instead.
 - Badges sit in a `flexShrink={0}` Box, or a neighbour taking the width wraps
   them onto two lines.
-- Colours are theme keys (`claude`, `bashBorder`, `autoAccept`,
-  `userMessageBackground`) so light and dark themes both work. Glyphs are Nerd
-  Font codicons (`nf-cod-*`), all present in FiraCode Nerd Font Mono. Prompts
-  take `ide` and replies `claude`, so the two sides of the conversation never
-  share a colour.
+- Colours started as theme keys and were too loud: the dark theme's keys are
+  pastels meant for text, not filled blocks. A mod cannot read whether the
+  light or dark theme is on, so `PALETTE` holds fixed muted mid-tones that
+  read on both; only the prompt band keeps a theme key
+  (`userMessageBackground`). Strong colour is kept for what needs attention:
+  errors, running and interrupted calls, diff counts and Skill calls. A finished call's
+  check mark is dimmed.
+- tmux without RGB makes chalk downsample to 256 colours, and it quantises
+  each channel as `round(v / 51)`, not to the cube's own levels. A first muted
+  palette collapsed Bash and Read onto 102, and Edit and the prompt onto 103.
+  Every channel is now 0x48, 0x7e or 0xb0, which land on the cube's 5f, 87 and
+  af.
+- Prompts and replies never share a colour (blue against rose). Glyphs are
+  Nerd Font codicons (`nf-cod-*`), all present in FiraCode Nerd Font Mono.
 - `TurnDuration` drops the engine's `done 12:28 PM`: the props carry no
   timestamp, and one taken at first render would be wrong after a resume.
