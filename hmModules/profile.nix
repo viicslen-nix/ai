@@ -80,15 +80,18 @@ in {
     (optionalAttrs (options.modules.programs ? claude-code) {
       modules.programs.claude-code = {
         marketplaces = {
+          hellosverre-mods = "hellosverre/claude-skins";
           mempalace = "MemPalace/mempalace";
           ponytail = "DietrichGebert/ponytail";
           worktrunk = "max-sixty/worktrunk";
         };
 
         plugins = {
+          "cc-plugin-you-should-know@builtin" = true;
           "document-skills@anthropic-agent-skills" = true;
           "example-skills@anthropic-agent-skills" = false;
           "laravel-simplifier@laravel" = true;
+          "skins@hellosverre-mods" = true;
           "mempalace@mempalace" = true;
           "phpstorm-plugin@phpstorm-marketplace" = true;
           "ponytail@ponytail" = true;
