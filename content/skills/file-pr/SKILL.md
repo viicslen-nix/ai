@@ -17,9 +17,10 @@ description: use when the user asks to file, open, or create a PR
 - If the user also requests to monitor or watch the pull request, continue directly with the **babysit-pr** skill.
 
 ## Title Conventions
+- Use conventional commit style: `type(scope): subject` (`!` after the scope for breaking changes).
 - Write concise, human-readable titles that explain **why** the changes matter, following repository conventions.
-- **Bad Title Example:** `PF server negotiate per message deflate on the websocket`.
-- **Good Title Example:** `PF server cut websocket frame size by 70% with gzipping`.
+- **Bad Title Example:** `feat(server): negotiate per message deflate on the websocket`.
+- **Good Title Example:** `perf(server): cut websocket frame size by 70% with gzipping`.
 
 ## Body Template
 
