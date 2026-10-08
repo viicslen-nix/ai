@@ -229,7 +229,9 @@ provider per API, `proxy-anthropic`, `proxy-openai` and `proxy-gemini`, with
 the listed models, shown as `Proxy (Anthropic)` and so on (`label` renames
 them). The single-provider harnesses get a second command instead:
 `claude-proxy`, `codex-proxy`, `copilot-proxy` and `agy-proxy` (`name` sets the
-suffix). The key is read from the file at launch, never written to the store.
+suffix). With `default = true` the proxy replaces their logins instead: Claude
+Code and Codex get it in their own config, Copilot and agy under their plain
+names. The key is read from the file at launch, never written to the store.
 
 </details>
 

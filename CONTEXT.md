@@ -674,10 +674,22 @@ from `/v1/models`, hence the shared `models` catalog.
 
 Claude Code, Codex, Copilot CLI and Antigravity take one endpoint per process,
 so each gets a `<bin>-<name>` launcher and the plain command keeps its login.
+`default` makes the proxy their only endpoint, and has to reach callers that
+never look at `PATH`: the Agent SDK and ACP adapters run their own bundled
+Claude Code, the Codex IDE extension its own codex, and both read the user
+config. So Claude gets `env.ANTHROPIC_BASE_URL` plus `apiKeyHelper` (which
+outranks an OAuth login) in settings.json, and Codex `model_provider` in
+config.toml. Copilot and agy have no such file, so their launchers take the
+plain names at `hiPrio`, winning the `home.packages` collision with the
+harness's own package; only a caller holding the store path escapes them.
+Overriding `programs.<x>.package` itself would catch that too, but the
+override needs the package it replaces, which is a recursion.
+
 How each one takes the key without the store:
 
 - Claude: `ANTHROPIC_AUTH_TOKEN` read in the launcher. Settings-file `env`
   would land in the store, and outranks the shell anyway.
+  Under `default`, `apiKeyHelper` cats the key link instead.
 - Codex: the provider in config.toml with `auth.command = cat <file>`; the
   launcher only selects it with `-c model_provider=<name>`. `wire_api = "chat"`
   is gone from Codex, so Responses is the only choice.

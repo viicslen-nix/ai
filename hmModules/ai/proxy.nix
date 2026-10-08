@@ -43,11 +43,20 @@ with lib; let
     ai.enable && cfg != null && cfg.targets.${target} && hasAttrByPath path options;
   enabled = path: attrByPath (path ++ ["enable"]) false config;
 
+  # hiPrio: as the plain command, it collides with the harness's own package.
   launcher = bin: body:
-    pkgs.writeShellScriptBin "${bin}-${cfg.name}" ''
-      set -eu
-      ${body}
-    '';
+    (
+      if cfg.default
+      then hiPrio
+      else id
+    ) (pkgs.writeShellScriptBin (
+        if cfg.default
+        then bin
+        else "${bin}-${cfg.name}"
+      ) ''
+        set -eu
+        ${body}
+      '');
 
   exportModel = var: model:
     optionalString (model != null) ''
@@ -293,8 +302,8 @@ in {
     description = mdDoc ''
       An LLM proxy every harness can use, such as CLIProxyAPI. opencode and pi
       get it as extra providers; Claude Code, Codex, Copilot CLI and
-      Antigravity get `<bin>-<name>` launchers, so the plain commands are
-      untouched.
+      Antigravity get `<bin>-<name>` launchers beside the plain commands, or
+      in their place with `default`.
     '';
     example = literalExpression ''
       {
@@ -341,6 +350,15 @@ in {
           description = mdDoc "Models listed in opencode and pi, keyed by the id the proxy serves. Neither discovers a custom provider's models.";
         };
 
+        default = mkEnableOption (mdDoc ''
+          the proxy as the only endpoint of Claude Code, Codex, Copilot CLI and
+          Antigravity, in place of their own logins. Claude Code and Codex get it
+          in their config files, which every caller reads; Copilot and agy take
+          it only from the environment, so `copilot` and `agy` become the
+          launchers, and a caller holding their store path bypasses them. No
+          `<bin>-<name>` launchers are installed
+        '');
+
         launchers = {
           claude.model = launcherModel " (`ANTHROPIC_MODEL`)";
           codex.model = launcherModel "";
@@ -373,26 +391,44 @@ in {
   config = mkMerge [
     (optionalAttrs (hasAttrByPath ["programs" "claude-code" "finalPackage"] options) (
       mkIf (on "claude-code" ["programs" "claude-code"] && enabled ["programs" "claude-code"] && config.programs.claude-code.package != null) {
-        home.packages = [claudeLauncher];
+        programs.claude-code.settings = mkIf cfg.default (
+          {
+            env = {
+              ANTHROPIC_BASE_URL = root;
+              CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY = "1";
+            };
+            apiKeyHelper =
+              if hasKey
+              then "cat ${escapeShellArg keyLink}"
+              else "echo none";
+          }
+          // optionalAttrs (cfg.launchers.claude.model != null) {inherit (cfg.launchers.claude) model;}
+        );
+        home.packages = mkIf (!cfg.default) [claudeLauncher];
       }
     ))
 
     (optionalAttrs (hasAttrByPath ["programs" "codex" "settings"] options) (
       mkIf (on "codex" ["programs" "codex"] && enabled ["programs" "codex"]) {
-        programs.codex.settings.model_providers.${cfg.name} =
+        programs.codex.settings = mkMerge [
+          (mkIf cfg.default ({model_provider = cfg.name;} // optionalAttrs (cfg.launchers.codex.model != null) {inherit (cfg.launchers.codex) model;}))
           {
-            inherit (cfg) name;
-            base_url = "${root}/v1";
-            wire_api = "responses";
-            model_catalog_url = "${root}/v1/models";
+            model_providers.${cfg.name} =
+              {
+                inherit (cfg) name;
+                base_url = "${root}/v1";
+                wire_api = "responses";
+                model_catalog_url = "${root}/v1/models";
+              }
+              // optionalAttrs hasKey {
+                auth = {
+                  command = "cat";
+                  args = [keyLink];
+                };
+              };
           }
-          // optionalAttrs hasKey {
-            auth = {
-              command = "cat";
-              args = [keyLink];
-            };
-          };
-        home.packages = mkIf (config.programs.codex.package != null) [codexLauncher];
+        ];
+        home.packages = mkIf (!cfg.default && config.programs.codex.package != null) [codexLauncher];
       }
     ))
 
