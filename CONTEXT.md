@@ -684,6 +684,10 @@ plain names at `hiPrio`, winning the `home.packages` collision with the
 harness's own package; only a caller holding the store path escapes them.
 Overriding `programs.<x>.package` itself would catch that too, but the
 override needs the package it replaces, which is a recursion.
+`<bin>-direct` launchers are the way back to each login. `claude-direct` drops
+the user settings with `--setting-sources project,local` and loads a copy
+without the proxy keys through `--settings`, because a higher layer can
+override `env` but cannot remove `apiKeyHelper`.
 
 How each one takes the key without the store:
 

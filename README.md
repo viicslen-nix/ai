@@ -231,7 +231,8 @@ them). The single-provider harnesses get a second command instead:
 `claude-proxy`, `codex-proxy`, `copilot-proxy` and `agy-proxy` (`name` sets the
 suffix). With `default = true` the proxy replaces their logins instead: Claude
 Code and Codex get it in their own config, Copilot and agy under their plain
-names. The key is read from the file at launch, never written to the store.
+names, and `<bin>-direct` keeps each one's own login. The key is read from the
+file at launch, never written to the store.
 
 </details>
 

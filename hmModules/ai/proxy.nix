@@ -58,6 +58,20 @@ with lib; let
         ${body}
       '');
 
+  # Under `default`, the escape hatch back to the harness's own login.
+  direct = bin: body:
+    pkgs.writeShellScriptBin "${bin}-direct" ''
+      ${body}
+    '';
+
+  # Claude's proxy lives in user settings, which `--settings` cannot unset; load them from a copy without it.
+  claudeDirectSettings = jsonFormat.generate "claude-direct-settings.json" (
+    removeAttrs config.programs.claude-code.settings (["apiKeyHelper"] ++ optional (cfg.launchers.claude.model != null) "model")
+    // {
+      env = removeAttrs (config.programs.claude-code.settings.env or {}) ["ANTHROPIC_BASE_URL" "CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY"];
+    }
+  );
+
   exportModel = var: model:
     optionalString (model != null) ''
       export ${var}="''${${var}:-${model}}"
@@ -355,8 +369,9 @@ in {
           Antigravity, in place of their own logins. Claude Code and Codex get it
           in their config files, which every caller reads; Copilot and agy take
           it only from the environment, so `copilot` and `agy` become the
-          launchers, and a caller holding their store path bypasses them. No
-          `<bin>-<name>` launchers are installed
+          launchers, and a caller holding their store path bypasses them.
+          `<bin>-direct` launchers replace the `<bin>-<name>` ones and keep each
+          harness's own login
         '');
 
         launchers = {
@@ -404,7 +419,16 @@ in {
           }
           // optionalAttrs (cfg.launchers.claude.model != null) {inherit (cfg.launchers.claude) model;}
         );
-        home.packages = mkIf (!cfg.default) [claudeLauncher];
+        home.packages = [
+          (
+            if cfg.default
+            then
+              direct "claude" ''
+                exec ${getExe config.programs.claude-code.finalPackage} --setting-sources project,local --settings ${claudeDirectSettings} "$@"
+              ''
+            else claudeLauncher
+          )
+        ];
       }
     ))
 
@@ -428,19 +452,36 @@ in {
               };
           }
         ];
-        home.packages = mkIf (!cfg.default && config.programs.codex.package != null) [codexLauncher];
+        home.packages = mkIf (config.programs.codex.package != null) [
+          (
+            if cfg.default
+            then
+              direct "codex" ''
+                exec ${getExe config.programs.codex.package} -c model_provider=openai "$@"
+              ''
+            else codexLauncher
+          )
+        ];
       }
     ))
 
     (optionalAttrs (hasAttrByPath ["programs" "github-copilot-cli" "package"] options) (
       mkIf (on "github-copilot-cli" ["programs" "github-copilot-cli"] && enabled ["programs" "github-copilot-cli"] && config.programs.github-copilot-cli.package != null) {
-        home.packages = [copilotLauncher];
+        home.packages =
+          [copilotLauncher]
+          ++ optional cfg.default (direct "copilot" ''
+            exec ${getExe' config.programs.github-copilot-cli.package "copilot"} "$@"
+          '');
       }
     ))
 
     (optionalAttrs (hasAttrByPath ["programs" "antigravity-cli" "package"] options) (
       mkIf (on "antigravity-cli" ["programs" "antigravity-cli"] && enabled ["programs" "antigravity-cli"] && config.programs.antigravity-cli.package != null) {
-        home.packages = [antigravityLauncher];
+        home.packages =
+          [antigravityLauncher]
+          ++ optional cfg.default (direct "agy" ''
+            exec ${getExe' config.programs.antigravity-cli.package "agy"} "$@"
+          '');
       }
     ))
 
