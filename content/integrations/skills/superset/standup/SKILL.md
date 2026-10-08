@@ -4,8 +4,8 @@ argument-hint: optional timeframe or project
 description: Digest of what the user's Superset agents did while they were away, sweeping workspaces, tasks, and agent terminals to report what finished, what needs review, and what's blocked. Use when the user asks "what did my agents do", "what happened while I was away", wants a standup or summary of agent work, or returns after a break.
 metadata:
     github-path: plugins/superset/skills/standup
-    github-pinned: cli-v1.33.0
-    github-ref: refs/tags/cli-v1.33.0
+    github-pinned: cli-v1.36.0
+    github-ref: refs/tags/cli-v1.36.0
     github-repo: https://github.com/superset-sh/superset
     github-tree-sha: 4d80b7c422c996d59b9200c9f5dd9b6a993f2e10
 name: standup

@@ -4,10 +4,10 @@ argument-hint: URL or what to do in the browser
 description: Open, navigate, screenshot, read, click, and type in web pages from an agent. Use when the user asks to open a URL, preview or verify a running web app, check a page's console, fill a form, click through a web flow, or automate anything in a browser, including "open localhost:3000", "screenshot the page", "what does the console say", "click the submit button". Drives the in-app browser pane of a Superset workspace by default and Browser Use for browsers the panes cannot reach.
 metadata:
     github-path: plugins/superset/skills/browser
-    github-pinned: cli-v1.33.0
-    github-ref: refs/tags/cli-v1.33.0
+    github-pinned: cli-v1.36.0
+    github-ref: refs/tags/cli-v1.36.0
     github-repo: https://github.com/superset-sh/superset
-    github-tree-sha: a39fbb526237d260b85210da2fd9f526f8dd4b09
+    github-tree-sha: d1ffdf8118d9e3fb23ef5914508bbf394d86d8bb
 name: browser
 ---
 # Superset Browser Control
@@ -124,7 +124,8 @@ Keychain prompt was denied; ask them to allow it and retry.
 ## Full interaction over raw CDP
 
 For clicking, typing, scrolling, waiting on selectors, or any Playwright-class
-flow, get the pane's CDP WebSocket endpoint:
+flow, get the pane's CDP WebSocket endpoint. This pattern is for panes only;
+for the user's own browser, follow `references/browser-use.md`:
 
 ```bash
 superset browser cdp --workspace <id> --pane <paneId> --json

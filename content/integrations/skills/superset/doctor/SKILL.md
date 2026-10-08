@@ -4,8 +4,8 @@ argument-hint: describe the symptom
 description: Diagnose and fix Superset problems such as connection failures, offline hosts, terminals not attaching, auth or update issues. Use when the user reports something broken or misbehaving in Superset itself ("Superset won't connect", "my host shows offline", "terminal won't attach", "the app is stuck"), before filing feedback.
 metadata:
     github-path: plugins/superset/skills/doctor
-    github-pinned: cli-v1.33.0
-    github-ref: refs/tags/cli-v1.33.0
+    github-pinned: cli-v1.36.0
+    github-ref: refs/tags/cli-v1.36.0
     github-repo: https://github.com/superset-sh/superset
     github-tree-sha: 4f99742abafa25b03940b4ffe68f69263d8519d0
 name: doctor

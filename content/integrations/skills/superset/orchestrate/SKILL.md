@@ -4,8 +4,8 @@ argument-hint: the work to split up and coordinate
 description: Coordinate several coding agents in parallel through Superset, each in its own workspace, with follow-ups, progress reads, dependency tracking, and structured results. Use when the user asks to delegate, parallelize, fan out, or split up coding work across agents, workspaces, or hosts, hand work between agents, or monitor workers, including "spin up agents for each of these", "run these in parallel", "what are my workers doing". Not for ordinary single-agent workspace, task, or automation management.
 metadata:
     github-path: plugins/superset/skills/orchestrate
-    github-pinned: cli-v1.33.0
-    github-ref: refs/tags/cli-v1.33.0
+    github-pinned: cli-v1.36.0
+    github-ref: refs/tags/cli-v1.36.0
     github-repo: https://github.com/superset-sh/superset
     github-tree-sha: 843053b3587506dccb2e3969c36ec30d6b6359d2
 name: orchestrate

@@ -4,8 +4,8 @@ argument-hint: optional topic, e.g. automations
 description: Personalized audit that teaches the advanced Superset features the user isn't using yet (automations, parallel agents, tasks, multi-host, terminal remote control, custom commands, MCP, pages) and sets them up live. Use when the user wants to get more out of Superset, asks "what else can Superset do", "how do I 10x my workflow", "what am I missing", or wants to learn a specific Superset feature.
 metadata:
     github-path: plugins/superset/skills/10x
-    github-pinned: cli-v1.33.0
-    github-ref: refs/tags/cli-v1.33.0
+    github-pinned: cli-v1.36.0
+    github-ref: refs/tags/cli-v1.36.0
     github-repo: https://github.com/superset-sh/superset
     github-tree-sha: f0625443a4a7380ebf9115c52a8aa2a83af4a0d7
 name: 10x

@@ -4,8 +4,8 @@ argument-hint: optional notes about the project's setup needs
 description: Make a repository Superset-ready by authoring .superset/config.json with setup, teardown, and run scripts so every new workspace boots configured, then verifying with a real workspace. Use when the user wants to set up a project or repo for Superset, configure workspace setup scripts, or fix a failing workspace setup ("new workspaces don't have node_modules", "my .env is missing in workspaces", "setup script isn't running").
 metadata:
     github-path: plugins/superset/skills/setup
-    github-pinned: cli-v1.33.0
-    github-ref: refs/tags/cli-v1.33.0
+    github-pinned: cli-v1.36.0
+    github-ref: refs/tags/cli-v1.36.0
     github-repo: https://github.com/superset-sh/superset
     github-tree-sha: 6def56ba4fa7c6e4c7285b2c37a76f24cd38a862
 name: setup

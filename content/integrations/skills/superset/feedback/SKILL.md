@@ -4,8 +4,8 @@ argument-hint: describe the bug, request, or feedback
 description: Collect and submit feedback about Superset (bug reports, feature requests, or general feedback) privately to the Superset team or as a public GitHub issue. Use when the user wants to report a Superset bug, request a feature, or send feedback about Superset.
 metadata:
     github-path: plugins/superset/skills/feedback
-    github-pinned: cli-v1.33.0
-    github-ref: refs/tags/cli-v1.33.0
+    github-pinned: cli-v1.36.0
+    github-ref: refs/tags/cli-v1.36.0
     github-repo: https://github.com/superset-sh/superset
     github-tree-sha: c087d3521cc365b7f75d8e70a4b970a4527dea16
 name: feedback

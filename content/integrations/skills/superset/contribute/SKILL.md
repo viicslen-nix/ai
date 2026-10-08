@@ -4,8 +4,8 @@ argument-hint: what they want to contribute
 description: Set up a Superset open-source contribution, from forking and cloning superset-sh/superset through local dev setup and the repo's rules to a merge-ready PR. Use when the user wants to contribute to Superset, fix a Superset bug themselves, add a feature to Superset, or prepare a PR against superset-sh/superset.
 metadata:
     github-path: plugins/superset/skills/contribute
-    github-pinned: cli-v1.33.0
-    github-ref: refs/tags/cli-v1.33.0
+    github-pinned: cli-v1.36.0
+    github-ref: refs/tags/cli-v1.36.0
     github-repo: https://github.com/superset-sh/superset
     github-tree-sha: 10a711b23692f3c979eb071e63c640ab7cd9e71d
 name: contribute

@@ -4,8 +4,8 @@ argument-hint: what you want to install, connect, or call
 description: Install Superset plugins, connect the accounts they need, and call their MCP tools through the credential proxy. Use when the user wants a plugin installed, removed, enabled, or connected, asks what tools a plugin exposes, wants to call one, adds a marketplace, or asks why a plugin's tools are not available.
 metadata:
     github-path: plugins/superset/skills/plugins
-    github-pinned: cli-v1.33.0
-    github-ref: refs/tags/cli-v1.33.0
+    github-pinned: cli-v1.36.0
+    github-ref: refs/tags/cli-v1.36.0
     github-repo: https://github.com/superset-sh/superset
     github-tree-sha: 151e81621da6e459f6e21cfd6d4b76c32da4e96e
 name: plugins
