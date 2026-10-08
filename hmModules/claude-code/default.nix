@@ -18,6 +18,14 @@ with lib; let
     };
   };
 
+  jsonFormat = pkgs.formats.json {};
+  jq = getExe pkgs.jq;
+  settingsPath = "${config.programs.claude-code.configDir}/settings.json";
+  stateDir = "${config.xdg.stateHome}/claude-code";
+  defaultsFile = jsonFormat.generate "claude-code-settings-defaults.json" cfg.defaults;
+  # home-manager's own rendering, so marketplaces and disabled MCP servers stay included.
+  enforcedFile = config.home.file.${settingsPath}.source;
+
   modsDir = ../../content/claude-mods;
   modNames = attrNames (filterAttrs (_: type: type == "directory") (builtins.readDir modsDir));
   # A `path:` flake copies gitignored files too, so the generated types are dropped here.
@@ -50,7 +58,17 @@ in {
     settings = mkOption {
       type = types.attrs;
       default = {};
-      description = mdDoc "Extra `settings.json` entries, merged over the defaults below.";
+      description = mdDoc "Extra `settings.json` entries, merged over the defaults below. Rewritten on every activation.";
+    };
+
+    defaults = mkOption {
+      inherit (jsonFormat) type;
+      default = {};
+      description = mdDoc ''
+        `settings.json` entries Claude Code may change at runtime (`/effort`, `/model`, `/config`).
+        A Nix change applies unless the value was changed at runtime.
+      '';
+      example = literalExpression ''{effortLevel = "max";}'';
     };
 
     pluginDirs = mkOption {
@@ -73,22 +91,69 @@ in {
       };
     }
     (mkIf cfg.enable {
-      # Don't drop `force`: the next activation then aborts on a stale settings.json.backup.
-      home.file."${config.programs.claude-code.configDir}/settings.json".force = true;
+      # Claude Code writes through a store symlink and fails on EROFS; the activation below writes a real file.
+      home.file.${settingsPath}.enable = mkForce false;
+
+      home.activation.claudeCodeSettings = hm.dag.entryAfter ["linkGeneration"] ''
+        settings=${escapeShellArg settingsPath}
+        state=${escapeShellArg stateDir}
+
+        current='{}'
+        if [[ -s $settings ]]; then
+          current=$(${jq} -c 'if type == "object" then . else error("not an object") end' "$settings") || {
+            warnEcho "$settings is not a JSON object; rewriting it from Nix"
+            current='{}'
+          }
+        fi
+
+        oldDefaults=$state/defaults.json
+        [[ -s $oldDefaults ]] || oldDefaults=/dev/null
+        oldEnforced=$state/enforced.json
+        [[ -s $oldEnforced ]] || oldEnforced=/dev/null
+
+        merged=$(${jq} -n --argjson current "$current" \
+          --slurpfile oldDefaults "$oldDefaults" --slurpfile newDefaults ${defaultsFile} \
+          --slurpfile oldEnforced "$oldEnforced" --slurpfile newEnforced ${enforcedFile} \
+          -f ${./merge-settings.jq})
+
+        if [[ ! -v DRY_RUN ]]; then
+          if [[ -L $settings ]]; then rm "$settings"; fi
+          mkdir -p "$(dirname "$settings")" "$state"
+          printf '%s\n' "$merged" > "$settings.hm-tmp"
+          mv "$settings.hm-tmp" "$settings"
+          install -m644 ${defaultsFile} "$state/defaults.json"
+          install -m644 ${enforcedFile} "$state/enforced.json"
+        fi
+      '';
 
       # Carries ~/.claude.json with it, and herdr resolves its hook directory
       # through the CLAUDE_CONFIG_DIR this exports.
       programs.claude-code.configDir = "${config.xdg.configHome}/claude";
 
+      modules.${namespace}.${name}.defaults = mapAttrsRecursive (_: mkDefault) {
+        model = "opus[1m]";
+        effortLevel = "high";
+
+        autoCompactWindow = 500000;
+
+        permissions.defaultMode = "auto";
+
+        workflowKeywordTriggerEnabled = true;
+        syntaxHighlightingDisabled = false;
+        alwaysThinkingEnabled = true;
+        autoMemoryEnabled = false;
+        tui = "fullscreen";
+        skipDangerousModePermissionPrompt = true;
+        theme = "auto";
+        editorMode = "vim";
+        verbose = false;
+        remoteControlAtStartup = false;
+        inputNeededNotifEnabled = true;
+        agentPushNotifEnabled = true;
+      };
+
       programs.claude-code.settings =
         recursiveUpdate {
-          model = "opus[1m]";
-          effortLevel = "high";
-
-          autoCompactWindow = 500000;
-
-          permissions.defaultMode = "auto";
-
           statusLine = {
             type = "command";
             # Keep this a store path; `npx -y ccstatusline@latest` re-resolves every render.
@@ -101,19 +166,6 @@ in {
           # entries, so github ones are written straight through.
           extraKnownMarketplaces = mapAttrs (_: mkMarketplace) cfg.marketplaces;
           enabledPlugins = cfg.plugins;
-
-          workflowKeywordTriggerEnabled = true;
-          syntaxHighlightingDisabled = false;
-          alwaysThinkingEnabled = true;
-          autoMemoryEnabled = false;
-          tui = "fullscreen";
-          skipDangerousModePermissionPrompt = true;
-          theme = "auto";
-          editorMode = "vim";
-          verbose = false;
-          remoteControlAtStartup = false;
-          inputNeededNotifEnabled = true;
-          agentPushNotifEnabled = true;
         }
         cfg.settings;
     })

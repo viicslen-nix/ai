@@ -66,7 +66,7 @@ with lib; let
 
   # Claude's proxy lives in user settings, which `--settings` cannot unset; load them from a copy without it.
   claudeDirectSettings = jsonFormat.generate "claude-direct-settings.json" (
-    removeAttrs config.programs.claude-code.settings (["apiKeyHelper"] ++ optional (cfg.launchers.claude.model != null) "model")
+    removeAttrs (recursiveUpdate (config.modules.programs.claude-code.defaults or {}) config.programs.claude-code.settings) (["apiKeyHelper"] ++ optional (cfg.launchers.claude.model != null) "model")
     // {
       env = removeAttrs (config.programs.claude-code.settings.env or {}) ["ANTHROPIC_BASE_URL" "CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY"];
     }

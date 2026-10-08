@@ -9,15 +9,31 @@ Global Claude Code preferences — the whole of `settings.json` apart
 from the hooks, which each integrating module contributes for itself
 (`modules.programs.ai` for mempalace/superset, `modules.programs.herdr`).
 
-Claude Code rewrites this file itself (`/config`, model switches), as do the
-mempalace/ponytail/superset hook installers. Once home-manager owns it those
-runtime edits land in `settings.json.backup` and are dropped on the next
-activation, so change settings here rather than in the TUI.
+## `settings.json` is a real file, merged at activation
 
-That is also why `home.file."${configDir}/settings.json".force` is set: Claude
-Code and the hook installers replace the symlink with a real file at runtime, so
-activation backs it up every time, and without `force` the next one aborts on
-the stale `settings.json.backup`.
+Claude Code rewrites this file itself (`/effort`, `/model`, `/config`), as do
+the mempalace/ponytail/superset hook installers. As a home-manager symlink it
+could not be: Claude Code now writes its temp file beside the symlink's
+*target*, so `/effort` died on `EROFS` in the store, and earlier versions that
+replaced the symlink lost their edits to `settings.json.backup` on the next
+activation.
+
+So home-manager's `home.file` entry is disabled, and `home.activation.claudeCodeSettings`
+writes a real file from two layers, using home-manager's rendered file as the
+enforced one:
+
+- **`defaults`** — preferences the TUI can change. A key takes the Nix value
+  unless the runtime value differs from what the last activation wrote, so a
+  `/effort` survives rebuilds while a changed Nix default still lands on an
+  untouched key.
+- **`programs.claude-code.settings`** (hooks, env, plugins, statusLine, …) —
+  deep-merged over the file on every activation; arrays are replaced.
+
+Keys Nix stops setting are removed if still at their last-written value. The
+last-written copies live in `$XDG_STATE_HOME/claude-code/`; deleting them makes
+the next activation treat every current value as a runtime edit. Keys only
+Claude Code writes (permission allow lists, installer hooks under a key Nix does
+not set) persist.
 
 ## `autoCompactWindow = 500000`
 
