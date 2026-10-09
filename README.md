@@ -89,6 +89,7 @@ never adds it separately.
 | `homeManagerModules.opencode` (= `opencode2`) / `opencode1` | opencode v2 / v1 |
 | `homeManagerModules.opencode-service` | The per-user opencode web service |
 | `homeManagerModules.pi` | [pi.nix](https://github.com/lukasl-dev/pi.nix)'s module (`programs.pi.coding-agent`), agent dir in `~/.config/pi` |
+| `homeManagerModules.t3code` | T3 Code (`modules.programs.t3code`), rebuilt with T3 Connect; optional nightly beside it, served or as the desktop app |
 | `nixosModules.opencode-web` | opencode as a web server for every home-manager user |
 | `devShells.<system>.default` | `gh`, `git`, `just`, `alejandra`, `column` for the recipes |
 | `formatter.<system>`, `checks.<system>` | treefmt, its `treefmt` check, and a `statix` check |

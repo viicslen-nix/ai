@@ -7,6 +7,7 @@
     packages = {
       url = "github:viicslen-nix/packages";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.llm-agents.follows = "llm-agents";
     };
 
     # The harness packages (claude-code, codex, copilot-cli, opencode2, …).
@@ -269,6 +270,7 @@
             (mkHmModule "opencode" ./hmModules/opencode/v2.nix)
             (mkHmModule "opencode1" ./hmModules/opencode/v1.nix)
             (mkHmModule "pi" piModule)
+            (mkHmModule "t3code" ./hmModules/t3code)
           ];
 
           ai = mkHmModule "ai" ./hmModules/ai;
@@ -280,6 +282,7 @@
           opencode-service = mkHmModule "opencode-service" ./hmModules/opencode/service.nix;
           pi = mkHmModule "pi" piModule;
           profile = mkHmModule "profile" ./hmModules/profile.nix;
+          t3code = mkHmModule "t3code" ./hmModules/t3code;
         };
 
         nixosModules = {
