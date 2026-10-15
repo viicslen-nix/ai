@@ -111,7 +111,14 @@ in {
       modules.programs.ai = {
         enable = true;
         integrations = {
-          gateway.enable = true;
+          gateway = {
+            enable = true;
+            # Must stay fixed: Clerk only accepts the redirect port the client was registered with.
+            settings.backends = {
+              context7.oauth.callback_port = 33418;
+              linear.oauth.callback_port = 33419;
+            };
+          };
           mempalace.enable = true;
           coderabbit.enable = true;
           openwiki.enable = true;

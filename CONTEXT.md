@@ -183,6 +183,29 @@ backends that authenticate with OAuth or not at all. Anything needing a secret
 is the consumer's — `google_stitch` stays in the nixos repo with the agenix
 secret that feeds its header.
 
+The OAuth backends pin `oauth.callback_port`, through
+`integrations.gateway.settings.backends` rather than `mcps`: `mcps` is shared
+with every harness (pi forwards its whole `oauth` block), and the key is
+mcp-gateway's alone. Without it mcp-gateway binds a
+random loopback port per authorization, but it caches the dynamically
+registered `client_id` in `oauth/<hash>_client.json` (see below) forever.
+Context7's Clerk server matches the redirect URI exactly, so every flow after
+the first failed with "`redirect_uri` does not match any of the OAuth 2.0
+Client's pre-registered redirect urls". The gateway only purges a cached client
+on `invalid_client`, so it never recovered on its own. Changing a port means
+deleting that backend's `_client.json` so it re-registers.
+
+mcp-gateway's state (OAuth tokens and clients, usage, transparency log,
+plugins) has no configurable location. Every path is `dirs::home_dir()` joined
+with `.mcp-gateway`, and `MCP_GATEWAY_CONFIG_DIR` only moves `version.stamp`
+and upgrade backups. So the unit runs with `HOME=%S/mcp-gateway`, and the state
+lands in `$XDG_STATE_HOME/mcp-gateway/.mcp-gateway`. Stdio backends inherit
+the gateway's `HOME`, so `toBackend` gives each of them the real one back
+through its `env` block. Backend `env` is applied last, so a server's own
+`env.HOME` still wins. The gateway's own `~` resolves there too, so a `~` path
+in its settings (e.g. `env_files`) must be spelled out absolute. Patching the paths was the alternative, but it means
+building the Rust package from source on every bump.
+
 ## What each target can actually take
 
 The fan-out is not uniform — the harnesses expose different option surfaces,

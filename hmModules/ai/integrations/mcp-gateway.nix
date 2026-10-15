@@ -17,9 +17,14 @@ with lib; let
         http_url = server.url;
         streamable_http = !hasSuffix "/sse" server.url;
       }
-      else {command = escapeShellArgs ([server.command] ++ (server.args or []));}
+      // optionalAttrs (server ? env) {inherit (server) env;}
+      else {
+        command = escapeShellArgs ([server.command] ++ (server.args or []));
+        # The service's HOME is its state dir; hand stdio backends the real one back.
+        env = {HOME = config.home.homeDirectory;} // (server.env or {});
+      }
     )
-    // removeAttrs server ["command" "args" "url"];
+    // removeAttrs server ["command" "args" "url" "env"];
 
   # Leave `meta_mcp.warm_start` unset; naming backends there narrows warm-start to them.
   settings =
@@ -53,7 +58,7 @@ in {
       };
 
       settings = mkOption {
-        type = types.attrs;
+        inherit (yaml) type;
         default = {};
         description = mdDoc "Extra `gateway.yaml` settings, merged over the generated `server`/`backends` sections.";
         example = literalExpression ''
@@ -95,8 +100,13 @@ in {
         ExecStart = "${getExe gcfg.package} --config ${configFile} serve";
         Restart = "on-failure";
         RestartSec = "5s";
-        # stdio backends shell out to npx and friends.
-        Environment = "PATH=${config.home.profileDirectory}/bin:/run/current-system/sw/bin:/run/wrappers/bin";
+        Environment = [
+          # stdio backends shell out to npx and friends.
+          "PATH=${config.home.profileDirectory}/bin:/run/current-system/sw/bin:/run/wrappers/bin"
+          # Its state paths are hardcoded under $HOME/.mcp-gateway; this is the only lever.
+          "HOME=%S/mcp-gateway"
+        ];
+        StateDirectory = "mcp-gateway";
       };
 
       Install.WantedBy = ["default.target"];
