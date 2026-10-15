@@ -13,8 +13,17 @@ description: use when the user asks to file, open, or create a PR
 
 ## PR Creation & Workflow
 - Prefer `gh` for PR discovery and creation. Pass the body with `--body-file` so code fences and Mermaid survive shell quoting.
-- **Do not open draft pull requests.** Open real PRs so automated review bots are triggered.
+- **Do not open draft pull requests.** Open real PRs so CI and automated checks run.
 - If the user also requests to monitor or watch the pull request, continue directly with the **babysit-pr** skill.
+
+## Requesting a CodeRabbit Review
+CodeRabbit no longer reviews automatically; each review spends a limited quota. After the PR exists, decide whether to request one with `gh pr comment <number> --body '@coderabbitai review'`.
+
+Request it only when **both** hold:
+- **Complete unit of work** — the change does what it set out to do; no known follow-up commits, stubs, or TODOs the author still plans to push before review.
+- **Worth the quota** — non-trivial logic across several files or modules, roughly 150+ changed lines excluding lockfiles and generated code, or a Merge Danger that is a one-way door or has a wide blast radius.
+
+Otherwise skip it and tell the user in one line that they can request one with `@coderabbitai review`. When reusing an existing PR that CodeRabbit has already reviewed, don't request another.
 
 ## Title Conventions
 - Use conventional commit style: `type(scope): subject` (`!` after the scope for breaking changes).
