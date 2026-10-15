@@ -41,6 +41,37 @@ update-skills *ARGS:
     git add "$dir"
   done
 
+# Show what upstream changed since our pins without touching anything: commits
+# and diff for each `*-skills` flake input, then the diff `update-skills` would
+# apply to the vendored skills (rehearsed on a temp copy, pinned ones skipped).
+# Usage: just skill-changes | less -R
+skill-changes:
+  #!/usr/bin/env bash
+  set -euo pipefail
+  jq -r '.nodes | to_entries[] | select(.value.flake == false and (.key | endswith("-skills")))
+    | [.key, .value.locked.owner, .value.locked.repo, .value.locked.rev, (.value.original.ref // "HEAD")] | @tsv' flake.lock |
+    while IFS=$'\t' read -r name owner repo rev ref; do
+      echo "=== $name: $owner/$repo ${rev:0:7}...$ref"
+      gh api "repos/$owner/$repo/compare/$rev...$ref" --jq '.commits[] | "\(.sha[0:7]) \(.commit.message | split("\n")[0])"'
+      gh api -H 'Accept: application/vnd.github.diff' "repos/$owner/$repo/compare/$rev...$ref"
+    done
+  tmp=$(mktemp -d)
+  trap 'rm -rf "$tmp"' EXIT
+  for dir in {{SKILLS_DIR}} $(just _integration-skill-dirs); do
+    echo "=== vendored: $dir"
+    mkdir -p "$tmp/$dir"
+    cp -r "$dir/." "$tmp/$dir"
+    gh skill update --all --dir "$tmp/$dir" 2>&1 |
+      { grep -v -e 'has no GitHub metadata' -e 'is pinned to' || true; } >&2
+    if f=$(grep -l '^ *github-pinned:' "$dir"/*/SKILL.md | head -1); then
+      pin=$(sed -n 's/^ *github-pinned: *//p' "$f")
+      repo=$(sed -n 's|^ *github-repo: *https://github.com/||p' "$f")
+      latest=$(gh api "repos/$repo/releases?per_page=100" --jq "[.[].tag_name | select(startswith(\"${pin%%[0-9]*}\"))][0]")
+      echo "⊘ pinned to $pin (latest $latest), skipped" >&2
+    fi
+    diff -ruN "$dir" "$tmp/$dir" || true
+  done
+
 # List the vendored skills with the repo and ref each came from. Hand-written
 # skills have no origin and are omitted.
 skills:

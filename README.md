@@ -268,6 +268,7 @@ nix flake check    # formatting, statix (repeated keys `statix fix` skips)
 | `just vendor-integration-skills <name> <owner/repo> …` | Vendor one integration's collection into `content/integrations/skills/<name>` |
 | `just update-skills [--dry-run]` | Re-pull every vendored skill |
 | `just skills` | List vendored skills with their repo and ref |
+| `just skill-changes` | Show upstream commits/diffs since the pinned skill inputs and vendored skills |
 
 `gh skill` is a preview command, so an older `gh` on your `PATH` fails every
 recipe; the dev shell pins a new enough one. `gh` records each skill's origin in

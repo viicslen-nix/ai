@@ -130,7 +130,7 @@
           ];
 
           shellHook = ''
-            echo "ai — just vendor-skills <owner/repo> [skill|--all] | update-skills | skills"
+            echo "ai — just vendor-skills <owner/repo> [skill|--all] | update-skills | skill-changes | skills"
           '';
         };
 
