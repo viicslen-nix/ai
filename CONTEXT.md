@@ -167,6 +167,17 @@ The option merges across definitions, so a consumer adds its own skills rather
 than replacing these — which is how the nixos repo layers in the skills that
 describe infrastructure not worth publishing.
 
+browser-harness's skill comes out of its built package, so it cannot go through
+`patchSkill`: that `readFile`s the source at eval time, which on a package
+output is IFD. The integration instead `cat`s the upstream `SKILL.md` and an
+"On this machine" section together in a `runCommand`. That section exists
+because an agent once started its own Chromium per task under a fresh
+`BU_NAME`, closed each browser and moved on: in 0.1.13 a named daemon exits
+only on an explicit shutdown, never when its CDP connection drops, and it
+re-parents to the user's systemd, so 19 of them sat idle for up to a week.
+Upstream's skill only says to stop *cloud* daemons. Ours points agents at the
+shared headless browser and has them `--reload` every name they start.
+
 ## `profile` is on once imported, and holds no credentials
 
 Importing the `profile` module is the opt-in: `modules.programs.aiProfile.enable`

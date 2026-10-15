@@ -14,6 +14,9 @@ wins (`hmModules/profile.nix`): upstream verbatim, upstream patched, local.
   anchored on plain ASCII spans. It returns a string, so use it only on
   single-file skills. A local copy in `content/skills` is the last resort: it
   stops tracking upstream.
+- **A skill shipped inside a built package** (browser-harness) cannot take
+  `patchSkill`, which would read the package at eval time (IFD). Edit it in a
+  `runCommand` over the store path, as `integrations/browser-harness.nix` does.
 - **"Call our skill instead of theirs"** (a local fork under another name) →
   `skillRenames.<old> = "<new>"`, never one patch per caller. `review-code`
   for upstream `code-review` is the worked example.

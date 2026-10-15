@@ -11,6 +11,30 @@ with lib; let
   inherit (bh) package headless;
   cdpUrl = "http://127.0.0.1:${toString headless.port}";
 
+  # Appended at build time: patchSkill would readFile the built package, which is IFD.
+  localNotes = pkgs.writeText "browser-harness-local.md" (''
+
+      ## On this machine
+
+    ''
+    + optionalString headless.enable ''
+      - A shared headless Chromium already runs at `${cdpUrl}` (the
+        `browser-harness-chrome` user service, on its own profile). Use it:
+        the MCP server is attached to it, and from the CLI set
+        `BU_CDP_URL=${cdpUrl}`. Do not launch a Chromium of your own.
+      - For parallel or isolated work, give each task its own `BU_NAME`
+        against that same browser; every named daemon gets its own tab.
+    ''
+    + ''
+      - A named daemon never exits on its own, not when its browser closes and
+        not when your session ends. When the task is done, stop every
+        `BU_NAME` you started: `BU_NAME=<name> browser-harness --reload`.
+        Never stop `default` or `headless` (the MCP server's daemon).
+    '');
+  skill = pkgs.runCommand "browser-harness-SKILL.md" {} ''
+    cat ${package}/${package.pythonModule.sitePackages}/browser_harness/SKILL.md ${localNotes} > $out
+  '';
+
   # Chromium locks a profile to one instance, so the headed window takes over
   # the service's profile and port, and hands both back when it closes.
   profileLauncher = pkgs.writeShellScriptBin "browser-harness-profile" ''
@@ -45,7 +69,7 @@ in {
   };
 
   skills = {
-    browser-harness = "${package}/${package.pythonModule.sitePackages}/browser_harness/SKILL.md";
+    browser-harness = "${skill}";
   };
 
   options = {
