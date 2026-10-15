@@ -7,9 +7,8 @@ and why the server is declared by hand.
 
 It is opt-in like the integrations, and both default packages come from this
 flake's own inputs: stable from `llm-agents`, the nightly from `packages`.
-Three of the things it configures belong to the consumer's config, not to
-home-manager: the `webapps` entry, the impermanence directories and the niri
-bind. Each is a separate `mkMerge` element under `optionalAttrs` on the
+Two of the things it configures belong to the consumer's config, not to
+home-manager: the impermanence directories and the niri bind. Each is a separate `mkMerge` element under `optionalAttrs` on the
 option's existence, because an undeclared option fails the eval even under a
 false `mkIf`. `osConfig` is read as `args.osConfig or {}`, and the desktop app
 defaults to `services.graphical-desktop.enable`, so a standalone eval needs
@@ -60,27 +59,23 @@ and the app — which spawns its own backend out of its own output, not the
 `serve` unit — does not. `out` is the CLI; the Electron app is the `desktop`
 output, and it is only useful on a graphical host.
 
-## The desktop app and the `serve` unit cannot coexist (`desktopApp`)
+## The desktop app and the `serve` unit (`desktopApp`)
 
-The Electron app has no attach mode (upstream #6097, thin-client PR #9376
-unmerged as of 0.0.42): it always spawns its own backend, finds 3773 busy,
-takes 3774 and opens the same `~/.t3/userdata/state.sqlite`. Both servers then
-reconcile "orphaned" threads, so one thread gets a `claude --resume` under
-each — duplicate work on the same thread, plus `database is locked`, plus the
-T3 Connect relay re-pointed at whichever server started last. Env switches
-were checked and none exist: `T3CODE_DESKTOP_WS_URL` is only in a passthrough
-list, and the primary-backend start is unconditional. The only attach path is
-the app's *SSH environment*, which is not worth an sshd-to-localhost hack.
+Up to 0.0.42 the Electron app had no attach mode (upstream #6097): it always
+spawned its own backend on the same `state.sqlite`, so both servers resumed the
+same threads, hit `database is locked`, and the T3 Connect relay pointed at
+whichever started last. `desktopApp` defaulted off while `serve` was on.
+The app now runs as a thin client of a running server, so it defaults to
+`services.graphical-desktop.enable` regardless of `serve`, and the `webapps`
+entry this module used to add for the served port is gone.
 
-So `desktopApp` defaults off whenever `serve` is on, and the local UI is a
-`webapps` entry this module appends — a chromeless chromium window on the
-served port, tiled rather than floating. It is declared here, not in
-`webapps`, because it exists only while `serve` does. `webapps` is not
-imported everywhere `t3code` is, so the definition is wrapped in
-`optionalAttrs (options.modules.programs ? webapps)`: an undeclared option is
-an error even under `mkIf`, and gating the attribute *name* on
-`config.…webapps.enable` instead is infinite recursion. Revisit when #9376
-lands.
+## The `t3` forwarder
+
+A package that renames its CLI (the nightly's `t3-nightly`) leaves no `t3` on
+`PATH` when it is the *main* instance's `package`. The module then installs a
+`t3` that execs the main instance's CLI, so `t3 connect` / `t3 serve` reach the
+same build and `~/.t3` as the `serve` unit. It is only added when the CLI is
+not already called `t3`, so it never collides with stable.
 
 ## The systemd unit is written here, not by `t3 service install`
 

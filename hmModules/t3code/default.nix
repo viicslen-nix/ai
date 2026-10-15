@@ -16,9 +16,8 @@ with lib; let
   graphical = attrByPath ["services" "graphical-desktop" "enable"] false osConfig;
   inherit (pkgs.stdenv.hostPlatform) system;
 
-  # A package built to sit beside another t3code advertises its renamed files in passthru.
+  # A package built to sit beside another t3code advertises its renamed CLI in passthru.
   cliProgram = pkg: pkg.cliProgram or "t3";
-  iconName = pkg: pkg.iconName or "t3code";
 
   # Both fixes must land on the unwrapped derivation, not on the outer wrapper.
   withConnect = icfg: base:
@@ -90,12 +89,11 @@ with lib; let
       '';
     };
 
-    # Off when the `serve` unit is the server: the app cannot attach to it and spawns a second backend on the same database.
     desktopApp = mkOption {
       type = types.bool;
-      default = graphical && !icfg.serve.enable;
-      defaultText = literalExpression "osConfig.services.graphical-desktop.enable && !serve.enable";
-      description = mdDoc "Install the Electron desktop app. Use the `webapps` entry against the served port instead when `serve` is on.";
+      default = graphical;
+      defaultText = literalExpression "osConfig.services.graphical-desktop.enable";
+      description = mdDoc "Install the Electron desktop app, which runs as a thin client of the `serve` unit when that is on.";
     };
 
     serve = {
@@ -198,10 +196,13 @@ in {
     {
       # `out` is the CLI; the Electron app is the `desktop` output, and it
       # is only useful on a graphical host.
-      home.packages = concatMap ({icfg, ...}:
-        [icfg.finalPackage]
-        ++ optional icfg.desktopApp icfg.finalPackage.desktop)
-      enabled;
+      home.packages =
+        concatMap ({icfg, ...}:
+          [icfg.finalPackage]
+          ++ optional icfg.desktopApp icfg.finalPackage.desktop)
+        enabled
+        ++ optional (cfg.enable && cliProgram cfg.finalPackage != "t3")
+        (pkgs.writeShellScriptBin "t3" ''exec ${getExe' cfg.finalPackage (cliProgram cfg.finalPackage)} "$@"'');
     }
 
     # Headless hosts have no `programs.niri` option at all, so even a false mkIf would fail.
@@ -270,20 +271,6 @@ in {
         mkIf (imp.enable && imp.autoPersistence) {
           directories = filter (d: d != null) (map (i: relativeStateDir i.icfg) enabled);
         };
-    })
-
-    # Test `options`, not `config`: gating the attr name on config.…webapps.enable recurses.
-    (optionalAttrs (options.modules.programs ? webapps) {
-      modules.programs.webapps.apps = mkIf config.modules.programs.webapps.enable (map ({
-        unit,
-        icfg,
-        ...
-      }: {
-        name = unit;
-        url = "http://127.0.0.1:${toString icfg.serve.port}";
-        floating = false;
-        icon = "${icfg.finalPackage.desktop}/share/icons/hicolor/scalable/apps/${iconName icfg.finalPackage}.svg";
-      }) (filter (i: i.icfg.serve.enable) enabled));
     })
   ];
 }
