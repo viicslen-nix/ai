@@ -178,8 +178,11 @@ as an `mcp-gateway.service` with no `ExecStart`, because the consumer's
 import the module without the opinions.
 
 It turns on the opinionated set: the skills
-and commands above, the claude-code marketplaces and plugins, and the four MCP
-backends that authenticate with OAuth or not at all. Anything needing a secret
+and commands above, the claude-code marketplaces and plugins, and the three MCP
+backends that authenticate with OAuth or not at all. Playwright is a fourth,
+behind `aiProfile.playwright.enable` and off by default: every session's
+`@playwright/mcp` launches its own Chromium, while browser-harness gives agents
+one shared headless browser. Anything needing a secret
 is the consumer's — `google_stitch` stays in the nixos repo with the agenix
 secret that feeds its header.
 

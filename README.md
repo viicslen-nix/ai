@@ -66,7 +66,7 @@ What `modules.programs.aiProfile` turns on:
 | **Commands** | `commit`, `investigate`, `pr-loop`, `verify` |
 | **Agents** | `ask`, `debug`, `documentation`, `pr-review-fixer`, `review`, `security` from `content/agents` |
 | **Context** | `content/AGENTS.md`, the global prompt every harness receives |
-| **MCP servers** | context7, gh_grep, linear, playwright — OAuth or no auth at all |
+| **MCP servers** | context7, gh_grep, linear, and playwright behind `aiProfile.playwright.enable` — OAuth or no auth at all |
 | **Integrations** | gateway (mcp-gateway), mempalace, coderabbit, openwiki |
 | **Claude Code** | marketplaces and plugins (mempalace, ponytail, worktrunk, document-skills, …) |
 

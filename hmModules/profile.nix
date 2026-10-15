@@ -71,6 +71,7 @@ with lib; let
 in {
   options.modules.programs.aiProfile = {
     enable = mkEnableOption (mdDoc "the opinionated AI harness profile — skills, commands, plugins and the credential-free MCP backends") // {default = true;};
+    playwright.enable = mkEnableOption (mdDoc "the Playwright MCP backend, which launches its own Chromium per session");
   };
 
   config = mkIf cfg.enable (mkMerge [
@@ -134,30 +135,33 @@ in {
 
         # Credential-free backends only. Anything needing a secret is the
         # consumer's to add, so this flake stays runnable anywhere.
-        mcps = {
-          context7 = {
-            url = "https://mcp.context7.com/mcp";
-            oauth.enabled = true;
+        mcps =
+          {
+            context7 = {
+              url = "https://mcp.context7.com/mcp";
+              oauth.enabled = true;
+            };
+            gh_grep = {
+              url = "https://mcp.grep.app";
+              protocol_version = "2025-06-18";
+            };
+            linear = {
+              url = "https://mcp.linear.app/mcp";
+              oauth.enabled = true;
+            };
+          }
+          // optionalAttrs cfg.playwright.enable {
+            playwright = {
+              command = "npx";
+              args = [
+                "-y"
+                "@playwright/mcp@latest"
+                "--ignore-https-errors"
+                "--browser"
+                "chromium"
+              ];
+            };
           };
-          gh_grep = {
-            url = "https://mcp.grep.app";
-            protocol_version = "2025-06-18";
-          };
-          linear = {
-            url = "https://mcp.linear.app/mcp";
-            oauth.enabled = true;
-          };
-          playwright = {
-            command = "npx";
-            args = [
-              "-y"
-              "@playwright/mcp@latest"
-              "--ignore-https-errors"
-              "--browser"
-              "chromium"
-            ];
-          };
-        };
       };
     }
   ]);
