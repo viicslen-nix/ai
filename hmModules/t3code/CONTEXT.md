@@ -69,6 +69,18 @@ The app now runs as a thin client of a running server, so it defaults to
 `services.graphical-desktop.enable` regardless of `serve`, and the `webapps`
 entry this module used to add for the served port is gone.
 
+The thin client reaches that server through the saved connection in
+`<stateDir>/userdata/connection-catalog.json`, which is encrypted with Electron
+safeStorage. Before 0.1, Electron fell back to its `basic` store on niri
+(`XDG_CURRENT_DESKTOP=niri` is not on Chromium's list). 0.1 forces
+`gnome-libsecret` there instead, so the first launch after the upgrade can't
+decrypt the catalog. The app then opens empty, and the trace logs `Desktop
+connection catalog protection failed during decrypt-catalog`. The threads are
+still on the server. To recover, move the catalog aside and re-pair. Adding an
+environment reads the old catalog first, so it fails until the file is gone. `--password-store=basic` on the
+command line would bring back the old key, but it also undoes the stronger
+storage upstream chose on purpose, so the module does not pass it.
+
 ## The `t3` forwarder
 
 A package that renames its CLI (the nightly's `t3-nightly`) leaves no `t3` on
