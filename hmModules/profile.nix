@@ -38,6 +38,7 @@ with lib; let
     "skills/productivity/grill-me"
     "skills/productivity/grilling"
     "skills/productivity/handoff"
+    "skills/productivity/to-questionnaire"
     "skills/productivity/wait-what"
     "skills/productivity/writing-for-agents"
   ];
