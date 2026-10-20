@@ -102,8 +102,8 @@ in {
 
   config = mkMerge [
     # pi.nix's module takes `osConfig`, which only home-manager's NixOS module
-    # provides; a special arg, when present, wins over this.
-    {_module.args.osConfig = mkDefault {};}
+    # provides; a special arg, or home-manager's own `mkDefault null`, wins over this.
+    {_module.args.osConfig = mkOptionDefault {};}
 
     (mkIf pi.enable {
       warnings = optional (!keepsAgentDir) ''
