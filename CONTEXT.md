@@ -178,6 +178,56 @@ re-parents to the user's systemd, so 19 of them sat idle for up to a week.
 Upstream's skill only says to stop *cloud* daemons. Ours points agents at the
 shared headless browser and has them `--reload` every name they start.
 
+## ponytail is a plugin where one exists, skills and a ruleset elsewhere
+
+Ponytail's effect is its ruleset being active every turn, which its plugins do
+with hooks: Claude Code (marketplace plugin, which also adds the band above the
+prompt and the mode flag) and opencode (the npm plugin, v1 and v2). A skill only
+loads when the model decides to, so where a plugin exists the integration
+installs that and nothing else. The integration declares them in
+`nativeTargets`, and `hmModules/ai/default.nix` drops its skills and context
+for exactly those targets: Claude's `ponytail:*` skills would otherwise clash
+by name with the marketplace plugin's.
+
+Codex is also native, and Nix owns all of it even though upstream's install is
+two CLI commands and an interactive `/hooks` review. `config.toml` is a store
+symlink, so nothing codex writes there would persist. The integration therefore
+declares what the commands would have written: a `local` marketplace pointing
+at the pinned source, `plugins."ponytail@ponytail".enabled`, and a
+`hooks.state` `trusted_hash` per hook. The plugin root itself is copied into
+`plugins/cache/ponytail/ponytail/<version>` by an activation step, because codex
+reports a symlinked root as "not installed" and a symlink farm as installed
+with no hooks. The trust hash depends only on the hook's declaration: it is
+codex's `hook_hash`, a sha256 of the normalized hook (event name, matcher, one
+handler with `timeout` defaulted to 600 and `async` to false) as sorted, compact
+JSON. That is exactly `builtins.toJSON`, so `ponytail.nix` computes every hash
+at eval time from the hooks file the plugin manifest names. This was verified
+against the hashes codex's app-server reports (`hooks/list`). If codex changes
+the identity, or ponytail adds a `SessionEnd` hook (codex clamps its timeout,
+and `ponytail.nix` does not), the hook shows as modified in `/hooks` and codex
+skips it. Newer codex also pins a hash of the whole plugin bundle. An approval
+without that hash is migrated by writing the current bundle as the baseline in
+`<CODEX_HOME>/.hook-trust/`, so a ponytail bump may then need one `/hooks`
+review.
+
+Every other harness (copilot, antigravity, pi) has no hook we can wire
+declaratively, so it gets the six skills plus ponytail's compact `AGENTS.md`
+appended to the global context, which is upstream's own instruction for
+harnesses without hooks. Copilot and pi do have ponytail plugins, but those
+are installed by a CLI command and Nix cannot own them.
+
+Everything comes from the `ponytail` `flake = false` input, which is bumped
+with the rest by `just update-subflake ai`. That covers the skills, the
+ruleset, the codex plugin source and its trust hashes. Codex needs the whole
+repo in the store anyway, so vendoring the skills separately would only add a
+second pin to keep in step. The opencode plugins go through
+`settings.plugin(s)`, not the `plugin(s)` option: the module overwrites the
+settings list with the option's.
+
+The marketplace plugin is not pinned, and Claude Code does not auto-update
+third-party marketplaces: it sat on 4.8.4 until `claude plugin update
+ponytail@ponytail` ran by hand.
+
 ## `profile` is on once imported, and holds no credentials
 
 Importing the `profile` module is the opt-in: `modules.programs.aiProfile.enable`

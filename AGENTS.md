@@ -87,6 +87,10 @@ renamed alias that warns.
   is IFD.
 - **Credentials** stay with the consumer; this flake ships only backends that
   authenticate with OAuth or not at all.
+- **A harness with its own plugin** for the integration is listed in
+  `nativeTargets`: it gets the plugin from the integration's `config` and skips
+  the integration's skills and `context`. The other targets get the skills, and
+  `context` is appended to theirs (`ponytail.nix` is the example).
 
 ## Agents
 

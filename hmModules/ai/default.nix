@@ -69,6 +69,7 @@ with lib; let
       isAttrs
       ;
   };
+  ponytailIntegration = import ./integrations/ponytail.nix {inherit lib cfg config aiInputs isAttrs options;};
   mcpGatewayIntegration = import ./integrations/mcp-gateway.nix {
     inherit lib cfg pkgs config;
     mcps = effectiveMcps;
@@ -145,6 +146,7 @@ with lib; let
     orca = orcaIntegration;
     browser-harness = browserHarnessIntegration;
     jev = jevIntegration;
+    ponytail = ponytailIntegration;
     superset = supersetIntegration;
   };
   allIntegrations = skillIntegrations // {gateway = mcpGatewayIntegration;};
@@ -180,6 +182,35 @@ with lib; let
       optionalAttrs (cfg.integrations.${integration}.skillNamespace == "") skillIntegrations.${integration}.skills)
     enabledIntegrations);
   memberClashes = filter (key: plainSkills ? ${key}) (attrNames members);
+
+  # An integration lists a harness in `nativeTargets` when it installs itself
+  # there as a plugin, so that harness takes neither its skills nor its context.
+  nativeTo = target: filter (integration: elem target (skillIntegrations.${integration}.nativeTargets or [])) enabledIntegrations;
+  hiddenSkills = target:
+    concatMap (integration: let
+      ns = cfg.integrations.${integration}.skillNamespace;
+    in
+      map (orig:
+        if ns == ""
+        then orig
+        else (member ns orig null).flat)
+      (attrNames skillIntegrations.${integration}.skills))
+    (nativeTo target);
+  skillsFor = target:
+    if isAttrs effectiveSkills
+    then removeAttrs effectiveSkills (hiddenSkills target)
+    else effectiveSkills;
+  contextFor = target: let
+    extra = filter (integration: skillIntegrations.${integration} ? context && !(elem integration (nativeTo target))) enabledIntegrations;
+    base =
+      if isPathLike cfg.context
+      then builtins.readFile cfg.context
+      else cfg.context;
+  in
+    if extra == []
+    then cfg.context
+    else concatStringsSep "\n\n" (filter (text: text != "") ([base] ++ map (integration: skillIntegrations.${integration}.context) extra));
+  ctxFor = target: mkIf (contextFor target != "") (mkDefault (contextFor target));
 
   # Only hyphenated bare names are rewritten: Superset's `setup`, `page` and
   # `browser` are ordinary words in other skills' prose.
@@ -233,13 +264,13 @@ with lib; let
         cp -rL ${skillDir m.short (claudeSkills.${m.flat} or m.content)} $out/skills/${m.short}
       '')
       ms))
-  (groupBy (m: m.ns) (attrValues members));
+  (groupBy (m: m.ns) (filter (m: !elem m.flat (hiddenSkills "claude-code")) (attrValues members)));
 
   mkDefaultAttrs = attrs: mapAttrs (_: mkDefault) attrs;
   # opencode also reads claude-code's skills directory.
   claudeCodeSkills =
     if isAttrs cfg.skills
-    then mapAttrs skillDir (removeAttrs claudeSkills (attrNames members))
+    then mapAttrs skillDir (removeAttrs claudeSkills (attrNames members ++ hiddenSkills "claude-code"))
     else effectiveSkills;
 
   mkDefaultSkills = skills:
@@ -483,6 +514,7 @@ in {
         ++ orcaIntegration.warnings
         ++ browserHarnessIntegration.warnings
         ++ jevIntegration.warnings
+        ++ ponytailIntegration.warnings
         ++ supersetIntegration.warnings;
     }
     # With the gateway on, clients see only the gateway; the real servers
@@ -502,8 +534,8 @@ in {
         enableMcpIntegration = true;
         commands = mkDefaultAttrs opencodeCommands;
         agents = mkDefaultAttrs effectiveAgents;
-        context = mkIf hasGlobalContext (mkDefault cfg.context);
-        skills = mkIf (hasGlobalSkills && hasOpencode1SkillsOption) (mkDefaultSkills effectiveSkills);
+        context = ctxFor "opencode1";
+        skills = mkIf (hasGlobalSkills && hasOpencode1SkillsOption) (mkDefaultSkills (skillsFor "opencode1"));
       };
     }))
     (optionalAttrs hasOpencodeOption (mkIf cfg.targets.opencode {
@@ -511,8 +543,8 @@ in {
         enableMcpIntegration = true;
         commands = mkDefaultAttrs opencodeCommands;
         agents = mkDefaultAttrs effectiveAgents;
-        context = mkIf hasGlobalContext (mkDefault cfg.context);
-        skills = mkIf (hasGlobalSkills && hasOpencodeSkillsOption) (mkDefaultSkills effectiveSkills);
+        context = ctxFor "opencode";
+        skills = mkIf (hasGlobalSkills && hasOpencodeSkillsOption) (mkDefaultSkills (skillsFor "opencode"));
       };
     }))
     (optionalAttrs hasClaudeCodeOption (mkIf cfg.targets.claude-code {
@@ -520,7 +552,7 @@ in {
         enableMcpIntegration = true;
         commands = mkDefaultAttrs claudeCodeCommands;
         agents = mkDefaultAttrs (mapAttrs (agentFor "claude-code") effectiveAgents);
-        context = mkIf hasGlobalContext (mkDefault cfg.context);
+        context = ctxFor "claude-code";
         skills = mkIf (hasGlobalSkills && hasClaudeCodeSkillsOption) (mkDefaultSkills claudeCodeSkills);
         settings =
           optionalAttrs (effectiveHooks != {}) {hooks = effectiveHooks;}
@@ -537,33 +569,33 @@ in {
       programs.antigravity-cli = {
         enableMcpIntegration = true;
         commands = mkDefaultAttrs antigravityCommands;
-        context = mkIf hasGlobalContext {
-          GEMINI = mkDefault cfg.context;
+        context = mkIf (contextFor "antigravity-cli" != "") {
+          GEMINI = mkDefault (contextFor "antigravity-cli");
         };
-        skills = mkIf (hasGlobalSkills && hasAntigravitySkillsOption) (mkDefaultSkills effectiveSkills);
+        skills = mkIf (hasGlobalSkills && hasAntigravitySkillsOption) (mkDefaultSkills (skillsFor "antigravity-cli"));
       };
     }))
     (optionalAttrs hasGithubCopilotCliOption (mkIf cfg.targets.github-copilot-cli {
       programs.github-copilot-cli = {
         enableMcpIntegration = true;
         agents = mkDefaultAttrs (mapAttrs (agentFor "github-copilot-cli") effectiveAgents);
-        context = mkIf hasGlobalContext (mkDefault cfg.context);
-        skills = mkIf (hasGlobalSkills && hasGithubCopilotCliSkillsOption) (mkDefaultSkills effectiveSkills);
+        context = ctxFor "github-copilot-cli";
+        skills = mkIf (hasGlobalSkills && hasGithubCopilotCliSkillsOption) (mkDefaultSkills (skillsFor "github-copilot-cli"));
       };
     }))
     (optionalAttrs hasCodexOption (mkIf cfg.targets.codex {
       programs.codex = {
         enableMcpIntegration = true;
-        context = mkIf hasGlobalContext (mkDefault cfg.context);
-        skills = mkIf (hasGlobalSkills && hasCodexSkillsOption) (mkDefaultSkills effectiveSkills);
+        context = ctxFor "codex";
+        skills = mkIf (hasGlobalSkills && hasCodexSkillsOption) (mkDefaultSkills (skillsFor "codex"));
       };
     }))
     (optionalAttrs hasPiOption (mkIf cfg.targets.pi {
       modules.programs.pi = {
         enableMcpIntegration = true;
         commands = mkDefaultAttrs opencodeCommands;
-        context = mkIf hasGlobalContext (mkDefault cfg.context);
-        skills = mkIf hasGlobalSkills (mkDefaultSkills effectiveSkills);
+        context = ctxFor "pi";
+        skills = mkIf hasGlobalSkills (mkDefaultSkills (skillsFor "pi"));
       };
     }))
     mempalaceIntegration.config
@@ -573,6 +605,7 @@ in {
     orcaIntegration.config
     browserHarnessIntegration.config
     jevIntegration.config
+    ponytailIntegration.config
     mcpGatewayIntegration.config
   ]);
 }

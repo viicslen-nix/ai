@@ -188,7 +188,6 @@ in {
             "@zenobius/opencode-skillful@latest"
             "@nick-vi/opencode-type-inject@latest"
             "@different-ai/opencode-browser@latest"
-            "@dietrichgebert/ponytail@latest"
           ];
 
           watcher.ignore = [

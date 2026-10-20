@@ -83,7 +83,6 @@ in {
         marketplaces = {
           hellosverre-mods = "hellosverre/claude-skins";
           mempalace = "MemPalace/mempalace";
-          ponytail = "DietrichGebert/ponytail";
           worktrunk = "max-sixty/worktrunk";
         };
 
@@ -95,7 +94,6 @@ in {
           "skins@hellosverre-mods" = true;
           "mempalace@mempalace" = true;
           "phpstorm-plugin@phpstorm-marketplace" = true;
-          "ponytail@ponytail" = true;
           "worktrunk@worktrunk" = true;
           "playground@claude-plugins-official" = true;
         };
@@ -123,6 +121,7 @@ in {
           mempalace.enable = true;
           coderabbit.enable = true;
           openwiki.enable = true;
+          ponytail.enable = true;
         };
         context = ../content/AGENTS.md;
         # Order matters — last wins, and ./skills shadows both upstream layers.

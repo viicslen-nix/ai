@@ -67,8 +67,8 @@ What `modules.programs.aiProfile` turns on:
 | **Agents** | `ask`, `debug`, `documentation`, `pr-review-fixer`, `review`, `security` from `content/agents` |
 | **Context** | `content/AGENTS.md`, the global prompt every harness receives |
 | **MCP servers** | context7, gh_grep, linear, and playwright behind `aiProfile.playwright.enable` — OAuth or no auth at all |
-| **Integrations** | gateway (mcp-gateway), mempalace, coderabbit, openwiki |
-| **Claude Code** | marketplaces and plugins (mempalace, ponytail, worktrunk, document-skills, …) |
+| **Integrations** | gateway (mcp-gateway), mempalace, coderabbit, openwiki, ponytail |
+| **Claude Code** | marketplaces and plugins (mempalace, worktrunk, document-skills, …; ponytail via its integration) |
 
 Further integrations ship off by default: `orca`, `superset`,
 `browser-harness`, `jev`. Each integration installs its own CLI, so a host
@@ -179,7 +179,7 @@ allowlist (`builders/agentFor.nix`).
 | Option | Does |
 | --- | --- |
 | `modules.programs.aiProfile.enable` | The opinionated set above; defaults to `true` once imported |
-| `modules.programs.ai.integrations.<name>` | `enable`, `package` + `installPackage`, `skillNamespace` (multi-skill integrations), plus each one's own knobs. Integrations: `gateway`, `mempalace`, `coderabbit`, `openwiki`, `orca`, `superset`, `browser-harness`, `jev` |
+| `modules.programs.ai.integrations.<name>` | `enable`, `package` + `installPackage`, `skillNamespace` (multi-skill integrations), plus each one's own knobs. Integrations: `gateway`, `mempalace`, `coderabbit`, `openwiki`, `orca`, `superset`, `browser-harness`, `jev`, `ponytail` |
 | `modules.programs.claude-code` | `marketplaces`, `plugins`, `settings` (merged over the pinned defaults); moves the config dir to `$XDG_CONFIG_HOME/claude` |
 | `modules.programs.opencode` | v2: `enable`, `model`, `small_model`, `phpantom.enable`; options on `programs.opencode2` |
 | `modules.programs.opencode1` | v1, the same shape; options on `programs.opencode1` |

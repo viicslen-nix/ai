@@ -45,6 +45,11 @@
       flake = false;
     };
 
+    ponytail = {
+      url = "github:DietrichGebert/ponytail";
+      flake = false;
+    };
+
     flake-parts.url = "github:hercules-ci/flake-parts";
 
     treefmt-nix = {
