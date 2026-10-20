@@ -699,6 +699,17 @@ The opencode-only `browser-automation` skill went at the same time. It
 described an opencode browser plugin's tools, and browser work now goes through
 the global browser skills.
 
+## Harness packages default to `llm-agents`
+
+`modules.programs.ai` sets `mkDefault` packages for claude-code, codex,
+copilot and antigravity from `llm-agents`. Without that, home-manager's
+defaults would ship the nixpkgs builds, which lag far behind: codex was 0.156
+in nixpkgs against 0.163 in `llm-agents`. These are the same packages
+`mkHarness` already wraps for `nix run`, so a host and a `nix run` now agree
+without the consumer naming them. opencode v1 and pi are left out because each
+comes from its own flake (`opencode`, `pi.nix`), and opencode v2's module
+already defaults to `llm-agents`.
+
 ## pi is pi.nix's module plus files of our own
 
 pi comes from `lukasl-dev/pi.nix`, not `llm-agents`: its home-manager module

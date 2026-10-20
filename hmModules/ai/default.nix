@@ -123,6 +123,7 @@ with lib; let
   hasCodexOption = hasAttrByPath ["programs" "codex" "context"] options;
   hasCodexSkillsOption = hasAttrByPath ["programs" "codex" "skills"] options;
   hasPiOption = hasAttrByPath ["modules" "programs" "pi" "context"] options;
+  llmAgents = aiInputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system};
 
   effectiveMcps =
     cfg.mcps
@@ -471,6 +472,11 @@ in {
   };
 
   config = mkIf cfg.enable (mkMerge [
+    # opencode v1 and pi are absent: each comes from its own flake.
+    (optionalAttrs hasClaudeCodeOption {programs.claude-code.package = mkDefault llmAgents.claude-code;})
+    (optionalAttrs hasCodexOption {programs.codex.package = mkDefault llmAgents.codex;})
+    (optionalAttrs hasGithubCopilotCliOption {programs.github-copilot-cli.package = mkDefault llmAgents.copilot-cli;})
+    (optionalAttrs hasAntigravityOption {programs.antigravity-cli.package = mkDefault llmAgents.antigravity-cli;})
     {
       assertions =
         [
