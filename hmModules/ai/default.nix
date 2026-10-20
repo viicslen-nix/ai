@@ -69,7 +69,7 @@ with lib; let
       isAttrs
       ;
   };
-  ponytailIntegration = import ./integrations/ponytail.nix {inherit lib cfg config aiInputs isAttrs options;};
+  ponytailIntegration = import ./integrations/ponytail.nix {inherit lib cfg config pkgs aiInputs isAttrs options;};
   mcpGatewayIntegration = import ./integrations/mcp-gateway.nix {
     inherit lib cfg pkgs config;
     mcps = effectiveMcps;

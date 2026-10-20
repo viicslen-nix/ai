@@ -2,6 +2,7 @@
   lib,
   cfg,
   config,
+  pkgs,
   aiInputs,
   isAttrs,
   options,
@@ -46,10 +47,30 @@ in {
   nativeTargets = ["claude-code" "opencode" "opencode1" "codex"];
 
   options = {
-    ponytail.enable = mkEnableOption (mdDoc "ponytail, as a plugin where the harness has one and as skills plus its ruleset elsewhere");
+    ponytail = {
+      enable = mkEnableOption (mdDoc "ponytail, as a plugin where the harness has one and as skills plus its ruleset elsewhere");
+
+      defaultMode = mkOption {
+        type = types.nullOr (types.enum ["off" "lite" "full" "ultra"]);
+        default = null;
+        example = "lite";
+        description = mdDoc "Level every new session starts at, merged into {file}`$XDG_CONFIG_HOME/ponytail/config.json` on activation. `null` leaves the file alone (ponytail then defaults to `full`).";
+      };
+    };
   };
 
   config = mkIf cfg.integrations.ponytail.enable (mkMerge [
+    # Merged, not linked: `/ponytail default <mode>` writes this file back.
+    (mkIf (cfg.integrations.ponytail.defaultMode != null) {
+      home.activation.ponytailDefaultMode = hm.dag.entryAfter ["writeBoundary"] ''
+        ponytailConfig="${config.xdg.configHome}/ponytail/config.json"
+        ponytailTmp=$(mktemp)
+        { ${getExe pkgs.jq} --arg m ${cfg.integrations.ponytail.defaultMode} 'if type == "object" then . else {} end | .defaultMode = $m' "$ponytailConfig" 2>/dev/null \
+          || ${getExe pkgs.jq} -n --arg m ${cfg.integrations.ponytail.defaultMode} '{defaultMode: $m}'; } >"$ponytailTmp"
+        run mkdir -p "$(dirname "$ponytailConfig")"
+        run mv "$ponytailTmp" "$ponytailConfig"
+      '';
+    })
     (optionalAttrs (hasAttrByPath ["modules" "programs" "claude-code" "marketplaces"] options) {
       modules.programs.claude-code = {
         marketplaces.ponytail = "DietrichGebert/ponytail";

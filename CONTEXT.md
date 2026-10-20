@@ -224,6 +224,12 @@ second pin to keep in step. The opencode plugins go through
 `settings.plugin(s)`, not the `plugin(s)` option: the module overwrites the
 settings list with the option's.
 
+`defaultMode` is merged into `$XDG_CONFIG_HOME/ponytail/config.json` at
+activation instead of linked, because ponytail's `/ponytail default <mode>`
+writes that file back. A runtime change therefore holds until the next
+activation. The file is used rather than `PONYTAIL_DEFAULT_MODE`, which only
+reaches harnesses started from a login shell.
+
 The marketplace plugin is not pinned, and Claude Code does not auto-update
 third-party marketplaces: it sat on 4.8.4 until `claude plugin update
 ponytail@ponytail` ran by hand.
