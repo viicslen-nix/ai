@@ -11,13 +11,15 @@ Both live in `scripts/` beside this file. `-R owner/repo` and `--pr N` default t
 - `scripts/pr-threads list | reply THREAD_ID BODY | comment BODY | resolve THREAD_ID` handles review threads and PR comments. A `BODY` of `-` reads stdin; `--dry-run` prints instead of posting.
 
 ## Monitoring & CI Loop
-- Every wait is `pr-watch` launched through the Bash tool with `run_in_background: true` and `timeout: 7200000`; its exit notification is your wake-up. It sleeps internally, which the harness allows. Run one per PR: a second one exits 3 and names the running PID.
+- In T3 Code (the `watch_pull_request` tool is available), T3 does the waiting: handle the existing feedback once, call `watch_pull_request`, and end the turn. Run no `pr-watch`, `sleep`, or background watcher. T3 wakes you when a check fails, the required checks pass, someone comments or reviews, or the branch starts to conflict; read the new state with `pr-threads list` and `gh pr checks`. Call `unwatch_pull_request` before handing back to the user.
+- Outside T3, every wait is `pr-watch` launched through the Bash tool with `run_in_background: true` and `timeout: 7200000`; its exit notification is your wake-up. It sleeps internally, which the harness allows. Run one per PR: a second one exits 3 and names the running PID.
 - Post every reply and PR comment through `pr-threads`. Your comments post under the user's login; `pr-threads` records their IDs so `pr-watch` reports only feedback from others.
 - Act on feedback from **every** reviewer — humans and any bot (`coderabbitai`, `github-advanced-security`, `sonarcloud`, `codecov`, `renovate`, custom org bots, …). A finding counts no matter who left it.
 - When `merge:` shows `BEHIND` or `DIRTY`, rebase on the default branch.
 - A CodeRabbit rate limit shows its ready time; relaunch `pr-watch`, which wakes when it lifts, then run `pr-threads comment '@coderabbitai review'`.
-- Loop `pr-watch` → verify → group → fix → single push per batch → relaunch `pr-watch`, until no outstanding comment needs action, all CI checks pass green, and all required approvals are secured (by a human or by whichever bot gates the repo).
-- When `pr-watch` reports the PR merged or closed, stop at once, even with checks or approvals outstanding, and report that terminal state.
+- Loop wait → verify → group → fix → single push per batch → wait, until no outstanding comment needs action, all CI checks pass green, and all required approvals are secured (by a human or by whichever bot gates the repo).
+- Stop after 5 fix rounds (pushes) and report what is still outstanding.
+- When the PR is merged or closed, stop at once, even with checks or approvals outstanding, and report that terminal state.
 
 ## Handling Feedback & Failures
 - **Verify every finding against the current code** before modifying anything. Drop the ones that are outdated, already fixed, purely stylistic noise the repo does not follow, or wrong — note the reason, you will reply with it.
