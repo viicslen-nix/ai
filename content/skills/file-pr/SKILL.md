@@ -44,6 +44,8 @@ Otherwise skip it and tell the user in one line that they can request one with `
 
 <before / after>
 
+## Queries   (only when the diff adds or changes a database query)
+
 ## Merge Danger
 
 **Door:** <one-way or two-way> — <optional: why>
@@ -102,6 +104,16 @@ Concrete before/after proof that the change works. Pick the best tier the enviro
   ```
 
 - Below that, say plainly what was verified and how (typecheck, manual check) and what was not.
+
+### Queries
+List every database query the diff adds or changes, so the reviewer can judge its performance. Include queries built through an ORM or query builder (Eloquent, ActiveRecord, Prisma, …), not just raw SQL.
+
+For each query:
+- **The SQL itself** in a `sql` block, as the database receives it. For an ORM query, write out the SQL it generates (for example with `toRawSql()`); never paste only the ORM code. For a changed query, use a `diff` block of the old and new SQL.
+- **Where and how often it runs**: the call site (`file:line`) and when it runs, such as per request, per row inside a loop (an N+1), in a queued job, or once in a migration.
+- **Indexes**: the index it relies on, or say plainly that none covers its `WHERE` / `JOIN` / `ORDER BY` columns. Add `EXPLAIN` output when you can run it against a realistic database; otherwise say it was not run.
+
+Flag a full scan of a large table, an N+1, an unbounded result set, or a lock-heavy write in Merge Danger as a performance risk.
 
 ### Merge Danger
 - **Door:** a **two-way door** is cheap to walk back (revert the commit, flip a flag). A **one-way door** is not: destructive migrations, data deletion or rewrites, published API/schema changes consumers adopt, sent emails or webhooks, irreversible infra. Say which, and why if it isn't obvious.
