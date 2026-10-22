@@ -1,5 +1,6 @@
 ---
 description: Investigate a topic and report findings plus possible solutions — no code changes yet.
+disable-model-invocation: true
 argument-hint: The question, review comment, bug, or topic to investigate.
 ---
 
