@@ -121,6 +121,15 @@ with lib; let
       };
 
       tailscaleServe = mkEnableOption (mdDoc "exposing the server over HTTPS on the Tailnet");
+
+      traceMinLevel = mkOption {
+        type = types.enum ["All" "Trace" "Debug" "Info" "Warn" "Error" "Fatal" "None"];
+        default = "Warn";
+        description = mdDoc ''
+          `T3CODE_TRACE_MIN_LEVEL`: spans below this level are not traced.
+          Upstream's `Info` rotates a 10MB trace file every few minutes.
+        '';
+      };
     };
   };
 
@@ -242,6 +251,7 @@ in {
           Service = {
             Type = "simple";
             WorkingDirectory = icfg.serve.workingDirectory;
+            Environment = ["T3CODE_TRACE_MIN_LEVEL=${icfg.serve.traceMinLevel}"];
             ExecStart = concatStringsSep " " ([
                 (getExe' icfg.finalPackage (cliProgram icfg.finalPackage))
                 "serve"
