@@ -63,7 +63,7 @@ What `modules.programs.aiProfile` turns on:
 | | |
 | --- | --- |
 | **Skills** | 20 curated from [mattpocock/skills](https://github.com/mattpocock/skills) (three patched in place, so upstream keeps flowing), plus `content/skills` — local skills and vendored collections (stitch, effective-html, plan-it, …) |
-| **Commands** | `commit`, `investigate`, `pr-loop`, `verify` |
+| **Commands** | `ask`, `commit`, `investigate`, `pr-loop`, `verify` |
 | **Agents** | `ask`, `debug`, `documentation`, `pr-review-fixer`, `review`, `security` from `content/agents` |
 | **Context** | `content/AGENTS.md`, the global prompt every harness receives |
 | **MCP servers** | context7, gh_grep, linear, and playwright behind `aiProfile.playwright.enable` — OAuth or no auth at all |
