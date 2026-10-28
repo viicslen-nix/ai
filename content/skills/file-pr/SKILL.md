@@ -89,11 +89,12 @@ A diff-sketch is usually the strongest choice for a modification. Match it to th
 ```
 
 ### Evidence
-Concrete before/after proof that the change works. Pick the best tier the environment allows:
+Concrete before/after proof that the change works. A diff with any visible effect requires screenshots; add the best other tier the environment allows:
 
-- **S-tier — screenshots**, whenever the change is visible (UI, layout, styling, copy, rendered output).
+- **S-tier — screenshots**, required whenever the change is visible (UI, layout, styling, copy, rendered output). Execution evidence goes beside them.
   - Capture "before" from the base branch (a worktree at `origin/<base>`) and "after" from this branch, at the same viewport, data and state. Pair them in a table with `Before` / `After` columns, cropped to what changed; add a full-page shot only when placement matters.
-  - The table holds real images only. Never fill a cell with a description of what a screenshot would show. If one side cannot be captured, leave it out; if neither can, drop the table and say why in one sentence.
+  - A fresh worktree has no dev server (in Laravel + Vite, no `public/hot`): start the project's own dev script (its T3 project script, else `package.json` `dev`, e.g. `bun run dev`) in each worktree you capture from.
+  - The table holds real images only. Never fill a cell with a description of what a screenshot would show. If one side cannot be captured, leave it out; if neither can, drop the table, say why in one sentence, and tell the user the UI is unverified and the PR is not ready to merge.
   - For a multi-step flow or an interaction a still cannot show (animation, drag and drop, transitions, loading states), add a short trimmed GIF of the "after" flow when it communicates something the stills do not.
   - `gh` cannot upload attachments. Host images with `scripts/pr-asset FILE...` (beside this file): it commits them to the orphan `assets/pr-screenshots` branch without a checkout and prints the `https://github.com/<owner>/<repo>/raw/assets/pr-screenshots/<file>` URL to embed. Name files `<topic>-before.png` / `<topic>-after.png`; a same-named file is overwritten. If the push fails, tell the user which files to drag into the description.
 - **A-tier — execution**: the exact test that failed before and passes now (named, with its assertion as pseudocode), or the command output before and after. Run it on both sides; don't claim a "before" you did not observe.

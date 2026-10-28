@@ -73,7 +73,8 @@ Before starting multi-step work, state in one line what will run in parallel.
 - When you need to search docs, use `context7` tools.
 - If you are unsure how to do something, use `gh_grep` to search code examples from GitHub.
 - When you need to ask questions to the user, use the `question` tool.
-- In T3 Code, prefer its MCP tools over hand-rolled equivalents. For visual checks, call `preview_open` once, then reuse that tab with `preview_navigate` / `preview_snapshot` against the running dev server; never script a new browser per screenshot. The first load of a cold dev server is slow, so wait it out rather than switching tools. Screenshot at checkpoints, not after every edit.
+- In T3 Code, prefer its MCP tools over hand-rolled equivalents.
+- Standing request for browser work, part of every task in T3 Code: verify each change with a visible UI effect in the browser with T3's `preview_*` tools against the running dev server, and capture before/after screenshots for its PR. Repo test tooling (e.g. Pest `visit()`) runs alongside this check. Call `preview_open` once, then reuse that tab with `preview_navigate` / `preview_snapshot`; a cold dev server's first load is slow, so wait it out. Screenshot at checkpoints, not after every edit.
 - Commits are signed through 1Password, which prompts once per commit. Before a rebase or cherry-pick that replays many commits, ask the user whether to sign each one or to run it with `-c commit.gpgsign=false`.
 
 ## Code Comments
