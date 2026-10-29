@@ -13,11 +13,12 @@ with lib; let
   toBackend = server:
     (
       if (server.url or null) != null
-      then {
-        http_url = server.url;
-        streamable_http = !hasSuffix "/sse" server.url;
-      }
-      // optionalAttrs (server ? env) {inherit (server) env;}
+      then
+        {
+          http_url = server.url;
+          streamable_http = !hasSuffix "/sse" server.url;
+        }
+        // optionalAttrs (server ? env) {inherit (server) env;}
       else {
         command = escapeShellArgs ([server.command] ++ (server.args or []));
         # The service's HOME is its state dir; hand stdio backends the real one back.
