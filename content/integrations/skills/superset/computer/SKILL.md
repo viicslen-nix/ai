@@ -1,16 +1,18 @@
 ---
-allowed-tools: Bash(cua-driver:*) Bash(peekaboo:*) Bash(superset pages publish:*)
+allowed-tools: Bash(cua-driver:*) Bash(peekaboo:*) Bash(superset pages publish:*) Bash(paradev pages publish:*)
 argument-hint: the app and what to do in it
-description: Operate the user's real desktop apps and windows on macOS, Windows, or Linux. Use when the user asks to open or drive a native app, click or type in a desktop UI, inspect or arrange a window, use their signed-in system browser, or verify an end-to-end GUI flow, including "open Settings and turn on dark mode", "click Save in that window", "what's on screen". Uses an accessibility-first driver (Cua Driver by default, Peekaboo on macOS). Not for Superset's in-app browser pane, headless scraping, or anything an API or CLI can do directly.
+description: Operate the user's real desktop apps and windows on macOS, Windows, or Linux. Use when the user asks to open or drive a native app, click or type in a desktop UI, inspect or arrange a window, use their signed-in system browser, or verify an end-to-end GUI flow, including "open Settings and turn on dark mode", "click Save in that window", "what's on screen". Uses an accessibility-first driver (Cua Driver by default, Peekaboo on macOS). Not for the Paradev (formerly Superset) in-app browser pane, headless scraping, or anything an API or CLI can do directly.
 metadata:
     github-path: plugins/superset/skills/computer
-    github-pinned: cli-v1.36.0
-    github-ref: refs/tags/cli-v1.36.0
+    github-pinned: cli-v2.0.0
+    github-ref: refs/tags/cli-v2.0.0
     github-repo: https://github.com/superset-sh/superset
-    github-tree-sha: d437e500d065cc77484e0d1c4bf7a50c9bcc823e
+    github-tree-sha: 4407b92690e4c8b1fcc86057d1371f3f99c399e5
 name: computer
 ---
 # Superset Computer Control
+
+`paradev` is an alias for the `superset` CLI: every `superset` command here also runs as `paradev`.
 
 Operate the user's real desktop through an accessibility-first driver: a local
 CLI that exposes accessibility snapshots, exact window screenshots, native menu

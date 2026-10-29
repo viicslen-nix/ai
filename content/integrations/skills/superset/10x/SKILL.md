@@ -1,16 +1,18 @@
 ---
-allowed-tools: Bash(superset:*) Bash(bash ${CLAUDE_SKILL_DIR}/scripts/audit.sh *)
+allowed-tools: Bash(superset:*) Bash(paradev:*) Bash(bash ${CLAUDE_SKILL_DIR}/scripts/audit.sh *)
 argument-hint: optional topic, e.g. automations
-description: Personalized audit that teaches the advanced Superset features the user isn't using yet (automations, parallel agents, tasks, multi-host, terminal remote control, custom commands, MCP, pages) and sets them up live. Use when the user wants to get more out of Superset, asks "what else can Superset do", "how do I 10x my workflow", "what am I missing", or wants to learn a specific Superset feature.
+description: Personalized audit that teaches the advanced Paradev (formerly Superset) features the user isn't using yet (automations, parallel agents, tasks, multi-host, terminal remote control, custom commands, MCP, pages) and sets them up live. Use when the user wants to get more out of Superset, asks "what else can Superset do", "how do I 10x my workflow", "what am I missing", or wants to learn a specific Superset feature.
 metadata:
     github-path: plugins/superset/skills/10x
-    github-pinned: cli-v1.36.0
-    github-ref: refs/tags/cli-v1.36.0
+    github-pinned: cli-v2.0.0
+    github-ref: refs/tags/cli-v2.0.0
     github-repo: https://github.com/superset-sh/superset
-    github-tree-sha: f0625443a4a7380ebf9115c52a8aa2a83af4a0d7
+    github-tree-sha: 1ccf572f2848ea764130c50cf479e730473eac1e
 name: 10x
 ---
 # Superset 10x
+
+`paradev` is an alias for the `superset` CLI: every `superset` command here also runs as `paradev`.
 
 Teach the user the advanced Superset features they aren't using yet, grounded in their real usage rather than a lecture. If they named a topic after the command, skip the audit and go straight to that topic.
 

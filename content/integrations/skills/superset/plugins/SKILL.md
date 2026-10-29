@@ -1,16 +1,18 @@
 ---
-allowed-tools: Bash(superset plugins:*) Bash(superset mcp:*) Bash(superset skills:*)
+allowed-tools: Bash(superset plugins:*) Bash(paradev plugins:*) Bash(superset mcp:*) Bash(paradev mcp:*) Bash(superset skills:*) Bash(paradev skills:*)
 argument-hint: what you want to install, connect, or call
-description: Install Superset plugins, connect the accounts they need, and call their MCP tools through the credential proxy. Use when the user wants a plugin installed, removed, enabled, or connected, asks what tools a plugin exposes, wants to call one, adds a marketplace, or asks why a plugin's tools are not available.
+description: Install Paradev (formerly Superset) plugins, connect the accounts they need, and call their MCP tools through the credential proxy. Use when the user wants a plugin installed, removed, enabled, or connected, asks what tools a plugin exposes, wants to call one, adds a marketplace, or asks why a plugin's tools are not available.
 metadata:
     github-path: plugins/superset/skills/plugins
-    github-pinned: cli-v1.36.0
-    github-ref: refs/tags/cli-v1.36.0
+    github-pinned: cli-v2.0.0
+    github-ref: refs/tags/cli-v2.0.0
     github-repo: https://github.com/superset-sh/superset
-    github-tree-sha: 151e81621da6e459f6e21cfd6d4b76c32da4e96e
+    github-tree-sha: acb58039ddc08447fc2227d35a5a00eab55353c9
 name: plugins
 ---
 # Plugins and their tools
+
+`paradev` is an alias for the `superset` CLI: every `superset` command here also runs as `paradev`.
 
 A plugin brings two things: **skills**, which land in the directories agents read, and **MCP
 tools**, which are called through Superset's proxy. Install state lives on the account, so a

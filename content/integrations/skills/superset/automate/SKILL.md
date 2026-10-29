@@ -1,16 +1,18 @@
 ---
-allowed-tools: Bash(superset:*)
+allowed-tools: Bash(superset:*) Bash(paradev:*)
 argument-hint: describe the recurring task
-description: Turn a recurring chore into a Superset automation. Drafts the agent prompt, confirms the schedule or event trigger and the target, creates it with the CLI, and reviews the first run together. Use when the user wants a scheduled or recurring agent, a daily or weekly job, or an agent that reacts to a Slack message, GitHub pull request, Linear issue, Sentry issue or incoming email, or says things like "every morning do X", "automate this", "set up a cron agent", "run this on a schedule", "when someone opens a PR, do X".
+description: Turn a recurring chore into a Paradev (formerly Superset) automation. Drafts the agent prompt, confirms the schedule or event trigger and the target, creates it with the CLI, and reviews the first run together. Use when the user wants a scheduled or recurring agent, a daily or weekly job, or an agent that reacts to a Slack message, GitHub pull request, Linear issue, Sentry issue or incoming email, or says things like "every morning do X", "automate this", "set up a cron agent", "run this on a schedule", "when someone opens a PR, do X".
 metadata:
     github-path: plugins/superset/skills/automate
-    github-pinned: cli-v1.36.0
-    github-ref: refs/tags/cli-v1.36.0
+    github-pinned: cli-v2.0.0
+    github-ref: refs/tags/cli-v2.0.0
     github-repo: https://github.com/superset-sh/superset
-    github-tree-sha: b692b02e3a4f1699e5815ae8c86efffba2fe1697
+    github-tree-sha: 7388bb99597b4cd7832e526ea1b3184dc900e56b
 name: automate
 ---
 # Superset Automate
+
+`paradev` is an alias for the `superset` CLI: every `superset` command here also runs as `paradev`.
 
 Turn "I keep doing X every morning" into an automation that does X on a schedule, or "someone should look at every new PR" into one that fires on the event.
 

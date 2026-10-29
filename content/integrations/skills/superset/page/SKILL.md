@@ -1,16 +1,18 @@
 ---
-allowed-tools: Bash(superset:*)
+allowed-tools: Bash(superset:*) Bash(paradev:*)
 argument-hint: what the page should show, or a page id/slug to update
-description: 'Build and publish a self-contained HTML page to Superset, then answer the comments readers pin to it. Use this instead of publishing a Claude artifact whenever the reader is a teammate: a page is listed in the org, every publish mints a version, and pinned comments come back to the agent. Use when the user asks to make or publish a page, turn a report, dashboard, chart, doc, or analysis into a shareable link, update or re-version a page already published, or work through comments left on one, including "make me a page for this", "publish this as a page", "share it as a link", "add a version", "address the comments on that page". Also use it unprompted to offer a page when you finish output a teammate will read: a change or PR walkthrough, a comparison, a report or digest, an incident writeup, or verification screenshots.'
+description: 'Build and publish a self-contained HTML page to Paradev (formerly Superset), then answer the comments readers pin to it. Use this instead of publishing a Claude artifact whenever the reader is a teammate: a page is listed in the org, every publish mints a version, and pinned comments come back to the agent. Use when the user asks to make or publish a page, turn a report, dashboard, chart, doc, or analysis into a shareable link, update or re-version a page already published, or work through comments left on one, including "make me a page for this", "publish this as a page", "share it as a link", "add a version", "address the comments on that page". Also use it unprompted to offer a page when you finish output a teammate will read: a change or PR walkthrough, a comparison, a report or digest, an incident writeup, or verification screenshots.'
 metadata:
     github-path: plugins/superset/skills/page
-    github-pinned: cli-v1.36.0
-    github-ref: refs/tags/cli-v1.36.0
+    github-pinned: cli-v2.0.0
+    github-ref: refs/tags/cli-v2.0.0
     github-repo: https://github.com/superset-sh/superset
-    github-tree-sha: 74bf85c70df7238132cd3e80256c17a22db814da
+    github-tree-sha: ffa36c550a1e03b1e5e2471de78d051bdc29a77b
 name: page
 ---
 # Superset Pages
+
+`paradev` is an alias for the `superset` CLI: every `superset` command here also runs as `paradev`.
 
 A page is an **`.html` document** published to a URL people in the org can
 open. Publish a single file and it must be self-contained; publish a directory
@@ -39,8 +41,9 @@ both stay the same, which is the identity of a page: a job that runs somewhere
 new each time needs `--page <id>` instead.
 
 Don't publish when the artifact belongs in the repo (source, docs, config: put
-those in files and commit them), or when it genuinely needs a server, a
-database, or a login. A page has none of those.
+those in files and commit them), or when it needs its own server, database
+connection, or login flow. A page has none of those, but it can show live data
+from the viewer's connected plugins (see `references/storage-and-tools.md`).
 
 If you're unsure, ask. Publishing is cheap and reversible, but a page the user
 didn't want is noise in their org's list.
@@ -108,7 +111,8 @@ enforced identically in the desktop pane and the web viewer:
   all blocked, and so is `fetch("data:...")`: a page cannot read its own
   inlined data URIs back out. Write pages that need no network at all: bake
   the data into the document as a literal, or decode base64 in JavaScript
-  (`atob`, then `Uint8Array.from`).
+  (`atob`, then `Uint8Array.from`). For live data, use `window.superset.tools`
+  (`references/storage-and-tools.md`).
 - **No compiling code at runtime.** `script-src` carries no `'unsafe-eval'`,
   so `eval()` and `new Function()` both raise an `EvalError`. This rules out
   inlining any library that builds functions at runtime, which includes
@@ -171,7 +175,7 @@ Rules that matter when you write one:
 - **Derive, don't accumulate.** A tally is computed from `getAll` on every
   render. Never keep a running count in a record.
 - **Values are JSON and bounded**: at most 64 KiB each, 500 keys per person,
-  and 4 MiB for the whole page. An over-size write rejects.
+  and 20 MiB for the whole page. An over-size write rejects.
 - **Branch on `error.code`**, never on the message: `quota_exceeded`,
   `rate_limited`, `unauthenticated`, `invalid`, `unavailable`, and `revoked`.
   `revoked` is terminal: the page's access changed while it was open, so
@@ -183,6 +187,8 @@ Rules that matter when you write one:
 - **Signed-in viewers of the page's organization only.** A signed-out reader
   of an `everyone` page gets no storage, so the page must still render.
 - Writes are per-person, so there is nothing to merge and no need for a CRDT.
+- **Private and shared values, and writes from an agent:** read
+  `references/storage-and-tools.md`.
 
 ## The other hard limits
 
