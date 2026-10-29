@@ -122,6 +122,7 @@ no recipe edit.
 The guides are version-matched to the installed app, and the stubs only
 resolve them. A bump of the vendored stubs therefore matters less than keeping
 Orca itself current. That is why the integration installs the app too, from
-`llm-agents`: it moves with `just update-subflake ai`, and it is built in
+`llm-agents`: it moves with `just update-ai` (the root pin, which `ai`
+follows — `update-subflake ai` alone leaves it), and it is built in
 numtide's cache. The package also ships a `bin/orca` CLI shim, which collides
 with the GNOME screen reader's `orca` if both end up in one profile.
