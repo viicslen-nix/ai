@@ -16,32 +16,42 @@ with lib; let
     patchSkill
     ;
 
+  tstack = aiInputs.tstack-skills;
   mattpocock = aiInputs.mattpocock-skills;
 
   # Curated by name — the upstream repo also carries in-progress/misc/deprecated.
-  upstreamSkills = selectFromInput mattpocock [
-    "skills/engineering/codebase-design"
-    "skills/engineering/diagnosing-bugs"
-    "skills/engineering/domain-modeling"
-    "skills/engineering/grill-with-docs"
-    "skills/engineering/implement"
-    "skills/engineering/implement-spec"
-    "skills/engineering/improve-codebase-architecture"
-    "skills/engineering/prototype"
-    "skills/engineering/research"
-    "skills/engineering/retro"
-    "skills/engineering/tdd"
-    "skills/engineering/to-spec"
-    "skills/engineering/to-tickets"
-    "skills/engineering/triage"
-    "skills/engineering/wayfinder"
-    "skills/productivity/grill-me"
-    "skills/productivity/grilling"
-    "skills/productivity/handoff"
-    "skills/productivity/to-questionnaire"
-    "skills/productivity/wait-what"
-    "skills/productivity/writing-for-agents"
-  ];
+  upstreamSkills =
+    selectFromInput mattpocock [
+      "skills/engineering/codebase-design"
+      "skills/engineering/diagnosing-bugs"
+      "skills/engineering/domain-modeling"
+      "skills/engineering/grill-with-docs"
+      "skills/engineering/implement"
+      "skills/engineering/implement-spec"
+      "skills/engineering/improve-codebase-architecture"
+      "skills/engineering/prototype"
+      "skills/engineering/research"
+      "skills/engineering/retro"
+      "skills/engineering/tdd"
+      "skills/engineering/to-spec"
+      "skills/engineering/to-tickets"
+      "skills/engineering/triage"
+      "skills/engineering/wayfinder"
+      "skills/productivity/grill-me"
+      "skills/productivity/grilling"
+      "skills/productivity/handoff"
+      "skills/productivity/to-questionnaire"
+      "skills/productivity/wait-what"
+      "skills/productivity/writing-for-agents"
+    ]
+    // selectFromInput tstack [
+      "skills/council"
+      "skills/full-send"
+      "skills/full-stop"
+      "skills/leaving-pr-comments"
+      "skills/modernize"
+      "skills/takeover"
+    ];
 
   localSkills = mkSkillAttrSet ../content/skills;
   # `gh skill` records each vendored skill's origin in its frontmatter.

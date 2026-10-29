@@ -45,6 +45,11 @@
       flake = false;
     };
 
+    tstack-skills = {
+      url = "github:t3dotgg/tstack";
+      flake = false;
+    };
+
     ponytail = {
       url = "github:DietrichGebert/ponytail";
       flake = false;
