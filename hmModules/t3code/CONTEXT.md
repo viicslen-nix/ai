@@ -65,12 +65,19 @@ Up to 0.0.42 the Electron app had no attach mode (upstream #6097): it always
 spawned its own backend on the same `state.sqlite`, so both servers resumed the
 same threads, hit `database is locked`, and the T3 Connect relay pointed at
 whichever started last. `desktopApp` defaulted off while `serve` was on.
-The app now runs as a thin client of a running server, so it defaults to
-`services.graphical-desktop.enable` regardless of `serve`, and the `webapps`
-entry this module used to add for the served port is gone.
 
-The thin client reaches that server through the saved connection in
-`<stateDir>/userdata/connection-catalog.json`, which is encrypted with Electron
+0.1 nightlies (seen on 20261021) still always spawn a primary backend in the
+app's `T3CODE_HOME`, and the server now holds an exclusive lock on
+`<home>/userdata/server-owner.sqlite`. With the `serve` unit already holding the
+same home, the app's backend exits 78 (`ServerAlreadyRunningError`), and the app
+shows "This T3 home is unavailable" and quits. There is no attach-to-service
+mode. So when `serve` is on, `desktopStateDir` defaults to
+`$XDG_DATA_HOME/<unit>-desktop`: the app runs its own local backend there, and
+you pair it once with the served port from Settings › Connections to reach the
+service's threads.
+
+The saved connection lives in
+`<desktopStateDir>/userdata/connection-catalog.json`, which is encrypted with Electron
 safeStorage. Before 0.1, Electron fell back to its `basic` store on niri
 (`XDG_CURRENT_DESKTOP=niri` is not on Chromium's list). 0.1 forces
 `gnome-libsecret` there instead, so the first launch after the upgrade can't

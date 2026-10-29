@@ -19,6 +19,8 @@ with lib; let
   # A package built to sit beside another t3code advertises its renamed CLI in passthru.
   cliProgram = pkg: pkg.cliProgram or "t3";
 
+  homeFlag = dir: optionalString (dir != null) " --set-default T3CODE_HOME ${escapeShellArg dir}";
+
   # Both fixes must land on the unwrapped derivation, not on the outer wrapper.
   withConnect = icfg: base:
     base.override {
@@ -38,18 +40,18 @@ with lib; let
         postInstall =
           (old.postInstall or "")
           + ''
-            for program in "$out/bin/t3" "$desktop/bin/t3code-desktop"; do
-              wrapProgram "$program" \
-                --set-default T3CODE_CLOUDFLARED_PATH "${getExe cfg.cloudflaredPackage}"${
-              optionalString (icfg.stateDir != null) " --set-default T3CODE_HOME ${escapeShellArg icfg.stateDir}"
+            wrap() {
+              wrapProgram "$1" --set-default T3CODE_CLOUDFLARED_PATH "${getExe cfg.cloudflaredPackage}" "''${@:2}"
             }
-            done
+            wrap "$out/bin/t3"${homeFlag icfg.stateDir}
+            wrap "$desktop/bin/t3code-desktop"${homeFlag icfg.desktopStateDir}
           '';
       });
     };
 
   instanceOptions = {
     icfg,
+    unitName,
     enable,
     package,
     packageText,
@@ -93,7 +95,21 @@ with lib; let
       type = types.bool;
       default = graphical;
       defaultText = literalExpression "osConfig.services.graphical-desktop.enable";
-      description = mdDoc "Install the Electron desktop app, which runs as a thin client of the `serve` unit when that is on.";
+      description = mdDoc "Install the Electron desktop app. It always runs its own backend, so beside `serve` it needs `desktopStateDir`.";
+    };
+
+    # A second server on the serve unit's home exits with ServerAlreadyRunningError.
+    desktopStateDir = mkOption {
+      type = types.nullOr types.str;
+      default =
+        if icfg.serve.enable
+        then "${config.xdg.dataHome}/${unitName}-desktop"
+        else icfg.stateDir;
+      defaultText = literalExpression ''if serve.enable then "''${config.xdg.dataHome}/<unit>-desktop" else stateDir'';
+      description = mdDoc ''
+        `T3CODE_HOME` of the desktop app. With `serve` on it must differ from
+        `stateDir`; pair the app with the served port once from Settings › Connections.
+      '';
     };
 
     serve = {
@@ -148,18 +164,19 @@ with lib; let
 
   enabled = filter (i: i.icfg.enable) instances;
 
-  relativeStateDir = icfg: let
+  relativeStateDir = dir: let
     home = "${config.home.homeDirectory}/";
   in
-    if icfg.stateDir == null
+    if dir == null
     then ".t3"
-    else if hasPrefix home icfg.stateDir
-    then removePrefix home icfg.stateDir
+    else if hasPrefix home dir
+    then removePrefix home dir
     else null;
 in {
   options.modules.${namespace}.${name} =
     instanceOptions {
       icfg = cfg;
+      unitName = name;
       enable = mkEnableOption (mdDoc "T3 Code");
       package = aiInputs.llm-agents.packages.${system}.t3code;
       packageText = "aiInputs.llm-agents.packages.\${system}.t3code";
@@ -171,6 +188,7 @@ in {
       # Installs beside the stable one: renamed commands, launcher and icons, its own state.
       nightly = instanceOptions {
         icfg = cfg.nightly;
+        unitName = "${name}-nightly";
         enable = mkEnableOption (mdDoc "T3 Code nightly, alongside the stable build");
         package = aiInputs.packages.packages.${system}.t3code.nightly;
         packageText = "aiInputs.packages.packages.\${system}.t3code.nightly";
@@ -279,7 +297,7 @@ in {
         imp = config.modules.functionality.impermanence;
       in
         mkIf (imp.enable && imp.autoPersistence) {
-          directories = filter (d: d != null) (map (i: relativeStateDir i.icfg) enabled);
+          directories = unique (filter (d: d != null) (concatMap (i: [(relativeStateDir i.icfg.stateDir)] ++ optional i.icfg.desktopApp (relativeStateDir i.icfg.desktopStateDir)) enabled));
         };
     })
   ];
