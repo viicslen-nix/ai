@@ -22,7 +22,7 @@ with lib; let
       isAttrs
       ;
   };
-  supersetIntegration = import ./integrations/superset.nix {inherit lib cfg pkgs aiInputs;};
+  supersetIntegration = import ./integrations/superset.nix {inherit lib cfg pkgs aiInputs osConfig;};
   coderabbitIntegration = import ./integrations/coderabbit.nix {
     inherit
       lib

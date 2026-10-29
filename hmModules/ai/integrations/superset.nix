@@ -3,8 +3,11 @@
   cfg,
   pkgs,
   aiInputs,
+  osConfig,
 }:
 with lib; let
+  ss = cfg.integrations.superset;
+  supersetPkgs = aiInputs.packages.packages.${pkgs.stdenv.hostPlatform.system}.superset;
   skillsDir = ../../../content/integrations/skills/superset;
   vendoredTag = let
     pin = builtins.match ".*\n *github-pinned: ([^\n]*)\n.*" (builtins.readFile (skillsDir + "/browser/SKILL.md"));
@@ -12,7 +15,7 @@ with lib; let
     if pin == null
     then null
     else head pin;
-  packageTag = "cli-v${cfg.integrations.superset.package.version}";
+  packageTag = "cli-v${ss.package.version}";
 
   # A no-op outside a Superset workspace ($SUPERSET_HOME_DIR unset), so the same
   # one-liner is safe on every event Superset wants to observe.
@@ -46,22 +49,38 @@ in {
 
   options = {
     superset = {
-      enable = mkEnableOption (mdDoc "Superset CLI, skills and agent-state notifications from Claude Code hooks");
+      enable = mkEnableOption (mdDoc "Superset CLI, desktop app, skills and agent-state notifications from Claude Code hooks");
 
       package = mkOption {
         type = types.package;
-        default = aiInputs.packages.packages.${pkgs.stdenv.hostPlatform.system}.superset.cli;
+        default = supersetPkgs.cli;
         defaultText = literalExpression "aiInputs.packages.packages.\${system}.superset.cli";
-        description = mdDoc "The Superset CLI the skills drive. The desktop app is separate.";
+        description = mdDoc "The Superset CLI the skills drive.";
+      };
+
+      desktop = {
+        enable =
+          mkEnableOption (mdDoc "the Superset desktop app")
+          // {
+            default = attrByPath ["services" "graphical-desktop" "enable"] false osConfig;
+            defaultText = literalExpression "osConfig.services.graphical-desktop.enable or false";
+          };
+
+        package = mkOption {
+          type = types.package;
+          default = supersetPkgs.desktop;
+          defaultText = literalExpression "aiInputs.packages.packages.\${system}.superset.desktop";
+          description = mdDoc "The Superset desktop app.";
+        };
       };
     };
   };
 
-  config = mkIf (cfg.integrations.superset.enable && cfg.integrations.superset.installPackage) {
-    home.packages = [cfg.integrations.superset.package];
+  config = mkIf ss.enable {
+    home.packages = optional ss.installPackage ss.package ++ optional ss.desktop.enable ss.desktop.package;
   };
 
   warnings =
-    optional (cfg.integrations.superset.enable && vendoredTag != null && vendoredTag != packageTag)
+    optional (ss.enable && vendoredTag != null && vendoredTag != packageTag)
     "`modules.programs.ai.integrations.superset`: the vendored skills are pinned to ${vendoredTag} but the CLI is ${packageTag}. Re-vendor with `just vendor-integration-skills superset superset-sh/superset plugins/superset/skills/<name> --pin ${packageTag}` in flakes/ai.";
 }
