@@ -46,7 +46,6 @@ with lib; let
     ]
     // selectFromInput tstack [
       "skills/council"
-      "skills/full-send"
       "skills/full-stop"
       "skills/leaving-pr-comments"
       "skills/modernize"
@@ -78,6 +77,10 @@ with lib; let
       patchSkill
       "${mattpocock}/skills/engineering/wayfinder/SKILL.md"
       (import ../content/skill-patches/wayfinder.nix);
+    full-send =
+      patchSkill
+      "${tstack}/skills/full-send/SKILL.md"
+      (import ../content/skill-patches/full-send.nix);
   };
 in {
   options.modules.programs.aiProfile = {
