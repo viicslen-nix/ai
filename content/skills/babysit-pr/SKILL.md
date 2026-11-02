@@ -50,10 +50,6 @@ Both live in `scripts/` beside this file. `-R owner/repo` and `--pr N` default t
 - `pr-threads list` gives each unresolved thread's ID; answer with `pr-threads reply THREAD_ID -` and the body on stdin.
 - Only a review's top-level summary body, which has no file or line, has no thread to answer in. That one, and only that one, gets `pr-threads comment`.
 - Leave every thread open after replying: the reviewer who raised it, or another human, decides when it is settled. `pr-threads resolve` runs only when the user asks for it.
-
-## Comment Formatting & Media
-- Format comments posted on the maintainer's behalf as follows:
-  `<!-- model: <slug> --> responding on behalf of <User>\n\n<reply>`.
 - Embed screenshots or uploaded media links when visual evidence helps clarify the fix.
 
 ## Scope Constraint

@@ -67,7 +67,7 @@ poll() {
     | ($checks | map(select(.s == "pending")) | length) as $pending
     | [$items[]
         | select((.id | tostring | IN($own[])) | not)
-        | select((.body // "") | contains("<!-- model:") | not)
+        | select((.body // "") | contains("responding on behalf of") | not)
         | select(.kind != "review" or .body != "" or .state != "COMMENTED")
         | . + {key: key}
         | select(.key | IN($seen[]) | not)] as $new
