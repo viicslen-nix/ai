@@ -1,5 +1,21 @@
-# Drops the `sol-loop` step, which this setup does not ship, and renumbers the rest.
+# Drops the unshipped `sol-loop` step and renumbers the rest; swaps the "full send" phrase for "ship it".
 [
+  {
+    from = "description: Trigger this if the user says 'full send'.";
+    to = "description: Trigger this if the user says 'ship it', asking you to take the work to a merged PR on your own.";
+  }
+  {
+    from = "# Full Send";
+    to = "# Ship It";
+  }
+  {
+    from = ''request "full send" in'';
+    to = ''request "ship it" in'';
+  }
+  {
+    from = ''A "full send" request is'';
+    to = ''A "ship it" request is'';
+  }
   {
     from = "3. **Get feedback.** Use the `sol-loop` skill to verify changes.\n4. **File the PR**";
     to = "3. **File the PR**";

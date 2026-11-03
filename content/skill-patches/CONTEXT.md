@@ -35,3 +35,23 @@ The `from` anchors are plain ASCII spans that have survived every upstream
 reword so far. `patchSkill` asserts they still exist, so a reword breaks the
 build rather than silently reverting grilling to vanilla. Paragraphs in `to`
 are single unwrapped lines, to match the surrounding upstream prose.
+
+## full-stop.nix
+
+A local delta on `github:t3dotgg/tstack` — `skills/full-stop`.
+
+Upstream triggers on the phrase "full stop", even a closing "Full stop." used
+for emphasis. Here "full stop" means stop all work at once, so the patch strips
+every trigger phrase and `skillRenames` installs the skill as
+`merge-ready`. `patchSkill` returns only `SKILL.md`, which drops the
+upstream `agents/openai.yaml` (Codex display metadata that still names
+`$full-stop`).
+
+## full-send.nix
+
+A local delta on `github:t3dotgg/tstack` — `skills/full-send`.
+
+Upstream asks for a `sol-loop` feedback step this setup does not ship; the
+patch drops it and renumbers the steps. "Full send" also read as childish, so
+the trigger phrase becomes "ship it" and `skillRenames` installs the skill as
+`ship-it`; `full-stop.nix` swaps its own mentions of full-send to match.

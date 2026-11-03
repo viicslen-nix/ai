@@ -81,6 +81,10 @@ with lib; let
       patchSkill
       "${tstack}/skills/full-send/SKILL.md"
       (import ../content/skill-patches/full-send.nix);
+    full-stop =
+      patchSkill
+      "${tstack}/skills/full-stop/SKILL.md"
+      (import ../content/skill-patches/full-stop.nix);
   };
 in {
   options.modules.programs.aiProfile = {
@@ -140,7 +144,12 @@ in {
         context = ../content/AGENTS.md;
         # Order matters — last wins, and ./skills shadows both upstream layers.
         skills = upstreamSkills // patchedSkills // localSkills;
-        skillRenames.code-review = "review-code";
+        skillRenames = {
+          code-review = "review-code";
+          full-send = "ship-it";
+          # "Full stop" means halt at once, never this PR workflow.
+          full-stop = "merge-ready";
+        };
         # Only collections that drive a tool get a namespace.
         skillNamespaces.stitch = fromRepo "google-labs-code/stitch-skills";
         commands = mkMarkdownAttrSet ../content/commands;
