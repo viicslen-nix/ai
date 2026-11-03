@@ -46,6 +46,7 @@ Both live in `scripts/` beside this file. `-R owner/repo` and `--pr N` default t
 - After every subagent returns, review the combined diff yourself before pushing. Agents can be individually right and collectively wrong.
 
 ## Replying In-Thread
+- Load the **leaving-pr-comments** skill before posting the first reply, and format every reply and comment by it.
 - Answer every finding **inside its own review thread** — what was fixed and in which commit, or the concrete reason it was skipped (already fixed in `<sha>`, the code does X not Y, the repo deliberately does it this way). A bare "done" leaves the next reader guessing.
 - `pr-threads list` gives each unresolved thread's ID; answer with `pr-threads reply THREAD_ID -` and the body on stdin.
 - Only a review's top-level summary body, which has no file or line, has no thread to answer in. That one, and only that one, gets `pr-threads comment`.
