@@ -1,5 +1,6 @@
 ---
-disable-model-invocation: true
+name: commit
+description: Use when the user asks to commit this session's changes.
 ---
 
 Separate the current session's changes or fixes into logical groups and commit them. Do not commit pre-existing changes unless explicitly instructed to do so. If a list of findings was provided, use that list to create the commits. Commit directly to `main` or `master` when currently on either branch; otherwise, commit to the current branch.

@@ -6,7 +6,7 @@ description: use when the user asks to file, open, or create a PR
 
 ## Pre-Filing Checks
 - Read the repo instructions and inspect `git status` first.
-- Commit outstanding changes exactly like the standalone `commit` command: separate them into logical groups and commit each.
+- Commit outstanding changes exactly like the **commit** skill: separate them into logical groups and commit each.
 - Review the diff locally against `origin/<base>`, where `<base>` is the repo default branch (`gh repo view --json defaultBranchRef -q .defaultBranchRef.name`), to verify its contents match the original goal.
 - Push the current branch.
 - Check whether a pull request for this branch already exists. If one does, reuse it — update its title and body instead of opening another.

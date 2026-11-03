@@ -1,3 +1,8 @@
+---
+name: pr-loop
+description: Use when the user asks to prepare the current branch for review and drive its PR to approval.
+---
+
 Prepare the current branch for review and drive the PR to approval.
 
 1. Follow the **file-pr** skill to commit, push, and create (or reuse) the pull request for this branch.
