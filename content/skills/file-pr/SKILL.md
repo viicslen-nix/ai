@@ -44,7 +44,11 @@ Otherwise skip it and tell the user in one line that they can request one with `
 
 <before / after>
 
-## Queries   (only when the diff adds or changes a database query)
+## Queries   (only when the diff adds, changes or removes a database query)
+
+**Added** — <what it does>
+**Updated** — <what changed: SQL, call site or frequency>
+**Removed** — <why; what replaces it, if anything>
 
 ## Merge Danger
 
@@ -107,10 +111,11 @@ Concrete before/after proof that the change works. A diff with any visible effec
 - Below that, say plainly what was verified and how (typecheck, manual check) and what was not.
 
 ### Queries
-List every database query the diff adds or changes, so the reviewer can judge its performance. Include queries built through an ORM or query builder (Eloquent, ActiveRecord, Prisma, …), not just raw SQL.
+List every database query the diff adds, changes or removes, so the reviewer can judge its performance. Include queries built through an ORM or query builder (Eloquent, ActiveRecord, Prisma, …), not just raw SQL.
 
 For each query:
-- **The SQL itself** in a `sql` block, as the database receives it. For an ORM query, write out the SQL it generates (for example with `toRawSql()`); never paste only the ORM code. For a changed query, use a `diff` block of the old and new SQL.
+- **What happens to it**, as a bold label opening its entry: **Added** (a new query that did not run before), **Updated** (an existing query whose SQL, call site or frequency changes — say which), or **Removed** (a query that no longer runs, including one replaced by another; name the replacement). A query that only moves between files with identical SQL and frequency is not listed.
+- **The SQL itself** in a `sql` block, as the database receives it. For an ORM query, write out the SQL it generates (for example with `toRawSql()`); never paste only the ORM code. For an updated query, use a `diff` block of the old and new SQL; for a removed one, the old SQL is enough, and its indexes need no review.
 - **Where and how often it runs**: the call site (`file:line`) and when it runs, such as per request, per row inside a loop (an N+1), in a queued job, or once in a migration.
 - **Indexes**: the index it relies on, or say plainly that none covers its `WHERE` / `JOIN` / `ORDER BY` columns. Add `EXPLAIN` output when you can run it against a realistic database; otherwise say it was not run.
 
