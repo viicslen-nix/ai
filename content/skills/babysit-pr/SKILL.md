@@ -18,7 +18,8 @@ Both live in `scripts/` beside this file. `-R owner/repo` and `--pr N` default t
 - When `merge:` shows `BEHIND` or `DIRTY`, rebase on the default branch.
 - A CodeRabbit rate limit shows its ready time; relaunch `pr-watch`, which wakes when it lifts, then run `pr-threads comment '@coderabbitai review'`.
 - Loop wait → verify → group → fix → single push per batch → wait, until no outstanding comment needs action, all CI checks pass green, and any bot that gates the repo has approved.
-- Once the required checks are green and no feedback needs action, stop: unwatch and report. Do not keep watching for a human approval or for non-required checks to finish: the watch hides the thread from the user's inbox meanwhile.
+- Once the required checks are green, every review-bot check (one whose job is to post review feedback, e.g. `claude-review`, `pr-agent`, CodeRabbit) has completed or been skipped, and no feedback needs action, stop: unwatch and report. Do not keep watching for a human approval or for other non-required checks to finish: the watch hides the thread from the user's inbox meanwhile.
+- A bot's review comment does not mean its check ran. Before counting a review as done, confirm in `gh pr checks` that the matching check completed for the current head SHA.
 - Stop after 5 fix rounds (pushes) and report what is still outstanding.
 - When the PR is merged or closed, stop at once, even with checks or approvals outstanding, and report that terminal state.
 
