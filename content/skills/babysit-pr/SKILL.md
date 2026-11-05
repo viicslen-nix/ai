@@ -50,8 +50,9 @@ Both live in `scripts/` beside this file. `-R owner/repo` and `--pr N` default t
 - Load the **leaving-pr-comments** skill before posting the first reply, and format every reply and comment by it.
 - Answer every finding **inside its own review thread** — what was fixed and in which commit, or the concrete reason it was skipped (already fixed in `<sha>`, the code does X not Y, the repo deliberately does it this way). A bare "done" leaves the next reader guessing.
 - `pr-threads list` gives each unresolved thread's ID; answer with `pr-threads reply THREAD_ID -` and the body on stdin.
+- **PR-Agent threads** (opened by `mylisterhub-pr-agent`, or `github-actions` on older PRs): start the reply with `/ask `, e.g. `/ask Fixed in <sha>: <what changed>.` or `/ask Not changing this: <reason>.` PR-Agent ignores replies without the prefix. With it, PR-Agent rechecks the current code, answers in the thread, and resolves the thread itself when it agrees. Its answer is new feedback: if it says the issue remains, handle it like any other finding.
 - Only a review's top-level summary body, which has no file or line, has no thread to answer in. That one, and only that one, gets `pr-threads comment`.
-- Leave every thread open after replying: the reviewer who raised it, or another human, decides when it is settled. `pr-threads resolve` runs only when the user asks for it.
+- Leave every thread open after replying: the reviewer who raised it, or another human, decides when it is settled. PR-Agent closing its own thread after a `/ask` reply is that reviewer deciding. `pr-threads resolve` runs only when the user asks for it.
 - Embed screenshots or uploaded media links when visual evidence helps clarify the fix.
 
 ## Scope Constraint
