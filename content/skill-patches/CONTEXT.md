@@ -55,3 +55,14 @@ Upstream asks for a `sol-loop` feedback step this setup does not ship; the
 patch drops it and renumbers the steps. "Full send" also read as childish, so
 the trigger phrase becomes "ship it" and `skillRenames` installs the skill as
 `ship-it`; `full-stop.nix` swaps its own mentions of full-send to match.
+
+## council.nix
+
+A local delta on `github:t3dotgg/tstack` — `skills/council`.
+
+Upstream names "Gemini Pro" only as an example, so the agent grabbed whatever
+Gemini model T3 listed first — including Gemini 4 Argon, which appears under
+the Claude provider and isn't a real Gemini account model. The patch pins the
+Gemini member to the Antigravity provider and has it pick the strongest Gemini
+model that account offers (Pro over Flash, newest first), so the choice follows
+the account instead of a hard-coded id.

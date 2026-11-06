@@ -85,6 +85,10 @@ with lib; let
       patchSkill
       "${tstack}/skills/full-stop/SKILL.md"
       (import ../content/skill-patches/full-stop.nix);
+    council =
+      patchSkill
+      "${tstack}/skills/council/SKILL.md"
+      (import ../content/skill-patches/council.nix);
   };
 in {
   options.modules.programs.aiProfile = {
