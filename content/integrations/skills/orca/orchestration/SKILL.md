@@ -2,28 +2,16 @@
 description: 'Run work in separate Orca worker agents and get their results back. Use when the user asks for Orca workers or supervision (monitor, task DAGs, ask/reply, decision gates), or when the work needs something your own subagents cannot give: a different agent (such as Codex from Claude) or its own Orca workspace. "Have Codex (or Claude) review this and report back" means an Orca worker of that agent, even when you have your own model subagents. Also use when you are a dispatched worker (a prompt with Task and Dispatch IDs: ask, worker_done). Otherwise prefer your own subagents, including for long or parallel work. Use `orca-cli` to hand work off with nothing expected back ("hand off", "handover", "give this to another agent", "another worktree"), and for terminal control, shell commands, worktree management, and reading or waiting on terminals.'
 metadata:
     github-path: skills/orchestration
-    github-ref: refs/tags/v1.4.246
+    github-ref: refs/tags/v1.4.255
     github-repo: https://github.com/stablyai/orca
-    github-tree-sha: a7bef59094d3384510bbfbd56990615c0d8c1327
+    github-tree-sha: 503493f3a3942a80590e80345e5dc07ac328978b
 name: orchestration
 ---
 # Orca Orchestration
 
-This file is a discovery stub, not the usage guide. The full, version-matched Orca
-orchestration reference is served by the `orca` binary itself — kept out of this file on
-purpose so it can never drift from the binary that will actually run your commands.
+This discovery stub loads the version-matched guide from the Orca executable used for this session.
 
-Use Orca orchestration to run work in separate Orca worker agents and get their results
-back: when the user asks for Orca workers or supervision (monitor, task DAGs, ask/reply,
-decision gates), or when the work needs something your own subagents cannot give, such as a
-different agent or its own Orca workspace. "Have Codex (or Claude) review this and report
-back" means an Orca worker of that agent, even when you have your own model subagents. Use
-it as well when you are a dispatched worker sending `ask` questions or `worker_done`. Otherwise prefer your own subagents,
-including for long or parallel work. Use the orca-cli skill instead to hand work off with
-nothing expected back ("hand off", "handoff", "handover", "give this to another agent",
-"another worktree"), and for ordinary terminal control, shell commands, worktree management,
-and the built-in browser. Coordination requires real Orca runtime state; never substitute a
-non-Orca subagent tool when the user asked for Orca orchestration.
+Never substitute a non-Orca subagent tool when the user asked for Orca orchestration.
 
 ## Resolve the CLI for this session
 
