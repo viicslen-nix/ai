@@ -156,5 +156,14 @@ its already-built derivation — stays exactly what it was. Persistence is
 derived from `stateDir`, so it follows an override as long as it stays under
 `$HOME`.
 
+**Changing `stateDir` on a linked host.** The T3 Connect link (environment
+id, relay credential) lives in `<stateDir>/userdata`, so a new `stateDir` boots
+a fresh, unlinked environment. Linking it needs a new tunnel while the old one
+still holds a slot, and the relay refuses past the account's 3 (`Relay managed
+tunnel limit reached`). Stop the unit and `mv` the old directory onto the new
+path instead. home-desktop hit this moving `~/.t3` to `$XDG_DATA_HOME/t3code`:
+its old tunnel showed offline while the fresh environment was refused. Threads
+in the scratch project keep their old absolute `<home>/scratch/…` paths.
+
 **Ports.** The nightly serves on 3783 by default: a stable desktop app that
 finds 3773 taken already falls back to 3774.
