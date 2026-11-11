@@ -1,10 +1,10 @@
 ---
-description: Operate Orca-managed worktrees, folder contexts, terminals, repos, automations, worktree comments, and Orca's embedded browser through the `orca` CLI. Use when the user says "$orca-cli", "Orca worktree", "child worktree", "spawn codex/claude in a worktree", "read/wait/send Orca terminal", "handoff" / "handover" / "give this to another agent", or "Orca browser". Prefer it over raw git worktree, ad hoc PTYs, or Computer Use when Orca state is involved. Use Computer Use only when a visible window needs GUI control that a CLI, filesystem, or API cannot do.
+description: Operate Orca-managed worktrees, folder contexts, terminals, repos, automations, worktree comments, and Orca's embedded browser through the `orca` CLI. Use when the user says "$orca-cli", "Orca worktree", "child worktree", "spawn codex/claude in a worktree", "read/wait/send Orca terminal", "handoff" / "handover" / "give this to another agent", or "Orca browser". Also use for opening, testing, screenshotting, or checking how a local or external web page renders while working in Orca, unless the user or project names another browser tool; plain HTTP or API calls (curl, fetch) do not need it. Prefer it over raw git worktree, ad hoc PTYs, or Computer Use when Orca state is involved. Use Computer Use only when a visible window needs GUI control that a CLI, filesystem, or API cannot do.
 metadata:
     github-path: skills/orca-cli
-    github-ref: refs/tags/v1.4.244
+    github-ref: refs/tags/v1.4.256
     github-repo: https://github.com/stablyai/orca
-    github-tree-sha: e96accd66bb1e31ca7a859d18013b28be295f97e
+    github-tree-sha: f92f7ed225b8ec1ddd8932154e3274499605079e
 name: orca-cli
 ---
 # Orca CLI
