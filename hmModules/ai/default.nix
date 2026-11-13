@@ -60,6 +60,7 @@ with lib; let
       isAttrs
       ;
   };
+  agentDesktopIntegration = import ./integrations/agent-desktop.nix {inherit lib cfg pkgs osConfig isAttrs;};
   jevIntegration = import ./integrations/jev.nix {
     inherit
       lib
@@ -146,6 +147,7 @@ with lib; let
     openwiki = openwikiIntegration;
     orca = orcaIntegration;
     browser-harness = browserHarnessIntegration;
+    agent-desktop = agentDesktopIntegration;
     jev = jevIntegration;
     ponytail = ponytailIntegration;
     superset = supersetIntegration;
@@ -519,6 +521,7 @@ in {
         ++ openwikiIntegration.warnings
         ++ orcaIntegration.warnings
         ++ browserHarnessIntegration.warnings
+        ++ agentDesktopIntegration.warnings
         ++ jevIntegration.warnings
         ++ ponytailIntegration.warnings
         ++ supersetIntegration.warnings;
@@ -610,6 +613,7 @@ in {
     openwikiIntegration.config
     orcaIntegration.config
     browserHarnessIntegration.config
+    agentDesktopIntegration.config
     jevIntegration.config
     ponytailIntegration.config
     mcpGatewayIntegration.config

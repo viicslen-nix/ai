@@ -75,6 +75,44 @@ window, and closing it brought the headless service back.
 Nothing finds your real Vivaldi anyway: browser-harness only probes Chrome,
 Chromium and Edge profile directories for `DevToolsActivePort`.
 
+## `agent-desktop.nix` — a private compositor, not a niri workspace
+
+Agents testing GUI apps used to open windows on the real niri session, which
+stole focus. On top of that, `screenshot-window` only showed a current frame
+while the window stayed in view. niri can open a window unfocused on another
+workspace, but it cannot send input to a window that is not focused, and a
+window off screen stops redrawing. So each agent desktop is its own headless
+sway (`WLR_BACKENDS=headless`): its windows, focus and input never touch niri.
+
+- **Isolation.** The template unit `agent-desktop@<name>` unsets the real
+  session's `WAYLAND_DISPLAY`/`DISPLAY`/`NIRI_SOCKET`, or sway would nest into
+  niri. sway runs under `dbus-run-session`, so a D-Bus single-instance app
+  (Ghostty, GApplication) opens its own window instead of handing off to the
+  user's running copy. Verified with the user's Ghostty open. Lock files in
+  the config directory are not covered; `run --fresh` swaps the
+  `XDG_*_HOME` directories for that. `dbus-update-activation-environment`
+  (never `--systemd`, which would point the user's own services at the agent
+  desktop) gives portals started on that bus the agent's display. Without it,
+  `xdg-desktop-portal-gtk` exits on start.
+- **Apps run in scopes, not services.** `run` uses `systemd-run --scope` so the
+  app keeps the agent shell's environment (dev shells, cwd). `PartOf` the
+  desktop unit makes `down` take them along. Chromium ignores SIGTERM once its
+  X server is gone, hence `TimeoutStopSec=5`.
+- **Keyboard: wtype. Pointer: vncdo through wayvnc.** A headless sway has no
+  pointer device, so the seat never advertises a pointer and
+  `swaymsg seat - cursor …` moves a cursor no client sees (verified: clicks
+  did nothing). wayvnc adds a virtual pointer for each VNC connection, so
+  pointer commands drive `vncdo` against it. That pointer disappears on
+  disconnect, which is why `hover` takes its screenshot while the connection
+  is held open. `vncdo capture` hangs against wayvnc, so screenshots stay on
+  grim. wtype loses a lone key sent right after it uploads its keymap; `-s 100`
+  fixes that.
+- **Watching.** wayvnc listens on loopback from port 5960 up (macos-vm uses
+  5900 + display). `-R` stops a viewer window resize from changing the agent's
+  resolution. The viewer is view-only unless `--interact` is passed.
+- `nixpkgs-wayland`'s overlay replaces sway, wlroots and wayvnc on desktop
+  hosts, so a bump of that overlay can rebuild them from source.
+
 ## `jev.nix` — a key-file wrapper, not an `EnvironmentFile`
 
 jev is a CLI you launch, not a unit, so there is no systemd to hand an
