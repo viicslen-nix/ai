@@ -3,9 +3,9 @@ description: 'Android device and emulator control from inside Orca over adb, wit
 license: Apache-2.0
 metadata:
     github-path: skills/orca-emulator-android
-    github-ref: refs/tags/v1.4.211
+    github-ref: refs/tags/v1.4.261
     github-repo: https://github.com/stablyai/orca
-    github-tree-sha: 437ed5e35698ee6421386a5a08fe7f8c7cf1a2a7
+    github-tree-sha: 2cc051523c6365d587688c988bab0fd137092dc8
 name: orca-emulator-android
 ---
 # Orca Emulator (Android)
@@ -38,8 +38,14 @@ ORCA skills get orca-emulator-android
 ```
 
 Prefer `--json`. Use the selected executable's `--help` for commands or flags the guide does
-not cover. If a command reports that Orca is not running, start it with `ORCA open --json`
-and retry. If it fails with `runtime_access_denied`, your sandbox blocked the connection:
-re-run it with escalated permissions, and do not run `ORCA open` or restart Orca. If
-`skills get` is unknown, explain that updating Orca restores the guide; use `--help` for
-read-only discovery and do not guess unsupported commands.
+not cover. A `runtime_unavailable` error is usually transient while Orca is busy or
+restarting: wait a few seconds and retry the command. Before retrying a command that changes
+something, check whether it already took effect, and reuse any request ID the error names.
+`ORCA open` can bring Orca's window to the front over the user's work, so never run it to
+retry a failed command. Run it only when the user asks, or when Orca is really not running:
+`ORCA status --json` reports `result.app.running: false`, or every command, `ORCA status`
+included, still cannot connect after about 30 seconds of retries. If a command fails with
+`runtime_access_denied`, your sandbox blocked the connection: re-run it with escalated
+permissions, and do not run `ORCA open` or restart Orca. If `skills get` is unknown, explain
+that updating Orca restores the guide; use `--help` for read-only discovery and do not guess
+unsupported commands.
