@@ -195,6 +195,7 @@ with lib; let
   };
 
   opencode2Provider = api: {
+    id = providerId api;
     name = providerName api;
     package =
       {
@@ -204,14 +205,7 @@ with lib; let
       }.${
         api
       };
-    settings = {
-      baseURL = baseUrlFor api;
-      apiKey =
-        if hasKey
-        then "{file:${keyLink}}"
-        else "none";
-    };
-    models = mapAttrs (id: m: {modelID = id;} // optionalAttrs (m.name != null) {inherit (m) name;}) (modelsOf api);
+    baseURL = baseUrlFor api;
   };
 
   # The AI SDK clients all append the route to a versioned base.
@@ -225,6 +219,7 @@ with lib; let
     };
 
   piProvider = api: {
+    id = providerId api;
     name = providerName api;
     baseUrl =
       {
@@ -246,19 +241,36 @@ with lib; let
       if hasKey
       then "!cat ${escapeShellArg keyLink}"
       else "none";
-    models = mapAttrsToList (id: m:
-      {
-        inherit id;
-        inherit (m) reasoning;
-      }
-      // optionalAttrs (m.name != null) {inherit (m) name;}
-      // optionalAttrs (m.contextWindow != null) {inherit (m) contextWindow;}
-      // optionalAttrs (m.maxOutput != null) {maxTokens = m.maxOutput;})
-    (modelsOf api);
   };
 
   usedApis = filter (api: modelsOf api != {}) apis;
   providers = mk: listToAttrs (map (api: nameValuePair (providerId api) (mk api)) usedApis);
+
+  # The pi extension and opencode v2 plugin list the proxy's live catalog, with `models` laid over it.
+  modelsPlugin = let
+    src = ../../content/proxy-models;
+    pluginConfig = jsonFormat.generate "config.json" {
+      inherit (cfg) name label;
+      baseUrl = root;
+      keyFile =
+        if hasKey
+        then keyLink
+        else null;
+      models = mapAttrs (_: filterAttrs (_: v: v != null)) cfg.models;
+      pi = genAttrs apis piProvider;
+      opencode = genAttrs apis opencode2Provider;
+    };
+  in
+    # Each harness gets a self-contained directory: pi may import through the unresolved symlink.
+    pkgs.runCommand "${cfg.name}-models" {} ''
+      for harness in pi opencode; do
+        mkdir -p $out/$harness
+        cp ${src}/discover.mjs $out/$harness/
+        cp ${pluginConfig} $out/$harness/config.json
+      done
+      cp ${src}/pi.ts $out/pi/index.ts
+      cp ${src}/opencode.js $out/opencode/index.js
+    '';
 
   modelType = types.submodule ({name, ...}: {
     options = {
@@ -290,9 +302,9 @@ with lib; let
       };
 
       reasoning = mkOption {
-        type = types.bool;
-        default = false;
-        description = mdDoc "Whether the model thinks; pi offers thinking levels only for these.";
+        type = types.nullOr types.bool;
+        default = null;
+        description = mdDoc "Whether the model thinks; pi offers thinking levels only for these. Null takes the proxy's catalog.";
       };
     };
   });
@@ -361,7 +373,12 @@ in {
         models = mkOption {
           type = types.attrsOf modelType;
           default = {};
-          description = mdDoc "Models listed in opencode and pi, keyed by the id the proxy serves. Neither discovers a custom provider's models.";
+          description = mdDoc ''
+            Models keyed by the id the proxy serves. opencode v2 and pi list the
+            proxy's catalog at startup and lay these over it, so they only
+            rename, correct, or keep listed a model the catalog drops while
+            its account is unavailable. opencode v1 lists only these.
+          '';
         };
 
         default = mkEnableOption (mdDoc ''
@@ -491,19 +508,16 @@ in {
       }
     ))
 
+    # `settings`, not the `plugins` option: the module overwrites the settings list with it.
     (optionalAttrs (hasAttrByPath ["programs" "opencode2" "settings"] options) (
-      mkIf (on "opencode" ["programs" "opencode2"] && usedApis != []) {
-        programs.opencode2.settings.providers = providers opencode2Provider;
+      mkIf (on "opencode" ["programs" "opencode2"]) {
+        programs.opencode2.settings.plugins = ["${modelsPlugin}/opencode"];
       }
     ))
 
-    # A file of our own, not pi.nix's `models`: that one is installed only
-    # when absent, so a later change would never arrive.
     (optionalAttrs (hasAttrByPath ["programs" "pi" "coding-agent"] options) (
-      mkIf (on "pi" ["programs" "pi" "coding-agent"] && enabled ["programs" "pi" "coding-agent"] && usedApis != []) {
-        xdg.configFile."pi/models.json".source = jsonFormat.generate "models.json" {
-          providers = providers piProvider;
-        };
+      mkIf (on "pi" ["programs" "pi" "coding-agent"] && enabled ["programs" "pi" "coding-agent"]) {
+        xdg.configFile."pi/extensions/${cfg.name}-models".source = "${modelsPlugin}/pi";
       }
     ))
 
@@ -517,8 +531,8 @@ in {
       '');
 
       warnings =
-        optional (cfg.models == {} && (cfg.targets.opencode || cfg.targets.opencode1 || cfg.targets.pi))
-        "`modules.programs.ai.proxy.models` is empty, so opencode and pi get no proxy provider; neither discovers a custom provider's models.";
+        optional (cfg.models == {} && cfg.targets.opencode1 && enabled ["programs" "opencode1"])
+        "`modules.programs.ai.proxy.models` is empty, so opencode v1 gets no proxy provider; unlike v2 and pi, it does not discover the proxy's models.";
     })
   ];
 }

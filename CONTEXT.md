@@ -774,7 +774,28 @@ Harnesses that hold several providers (opencode v1 and v2, pi) get the proxy
 serves Claude over Anthropic Messages, GPT over OpenAI Responses and Gemini
 over its own API, and translating everything through chat-completions loses
 prompt caching and thinking. None of them reads a custom provider's model list
-from `/v1/models`, hence the shared `models` catalog.
+from `/v1/models`, so pi and opencode v2 get a plugin of ours that does
+(`content/proxy-models`): `discover.mjs` fetches CLIProxyAPI's codex-format
+catalog (`/v1/models?client_version=1`, which adds context windows, modalities
+and reasoning levels to the bare ids, but drops the `owned_by` that plain
+`/v1/models` carries, so it fetches both), routes `claude*` ids and aliases whose
+display name is a Claude model to Anthropic, `gemini*` to Gemini and the rest to
+Responses, and lays `models` over the result. Responses models not owned by
+OpenAI (the free Zen models as `opencode`, Meta's) get a provider per owner, so the picker
+does not file them under OpenAI. Each catalog reasoning level becomes an opencode
+variant shaped like opencode's own for that SDK; without variants the model
+offers no reasoning at all. Both catalog endpoints list only
+models whose account is available at that moment (76 then 44 within minutes), so
+a model in `models` is the way to keep one listed through a cooldown. A
+catalog that cannot be reached leaves just `models`. opencode v1 has a different
+plugin API and keeps the static `models` list.
+
+The plugin is built per harness into a self-contained directory (code, shared
+module and generated `config.json` side by side), because pi may resolve
+imports through the unresolved `extensions/<name>-models` symlink, where `../`
+is the agent dir. Neither plugin imports a package: opencode v2 takes plain
+`{id, setup}` and `Provider.Info`/`Model.Info` objects, and pi a plain
+factory.
 
 Claude Code, Codex, Copilot CLI and Antigravity take one endpoint per process,
 so each gets a `<bin>-<name>` launcher and the plain command keeps its login.
@@ -819,12 +840,9 @@ Every consumer reads the key through one symlink,
 `$XDG_STATE_HOME/ai-proxy/<name>-api-key`, which activation points at
 `apiKeyFile`. home-manager's agenix reports that path with a literal
 `${XDG_RUNTIME_DIR}`, and only a shell expands it: Codex's `auth` command,
-opencode's `{file:}` and pi's `!cat` all read it verbatim, and a quoted `cat`
+opencode's `{file:}`, pi's `!cat` and the models plugin all read it verbatim, and a quoted `cat`
 in the launchers did too (`claude-proxy` failed on its first real run).
 Activation expands it once, so the link holds the real `/run/user/<uid>` path.
-
-pi's models.json is a file of ours, not pi.nix's `models` option: that one is
-installed only when absent, so a later change would never reach the machine.
 
 Testing against a live proxy has two traps. opencode v2 hands `run` to its
 background service, which keeps the config it started with, so a test config
