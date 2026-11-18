@@ -61,8 +61,22 @@ the trigger phrase becomes "ship it" and `skillRenames` installs the skill as
 A local delta on `github:t3dotgg/tstack` — `skills/council`.
 
 Upstream names "Gemini Pro" only as an example, so the agent grabbed whatever
-Gemini model T3 listed first — including Gemini 4 Argon, which appears under
-the Claude provider and isn't a real Gemini account model. The patch pins the
-Gemini member to the Antigravity provider and has it pick the strongest Gemini
-model that account offers (Pro over Flash, newest first), so the choice follows
-the account instead of a hard-coded id.
+Gemini model T3 listed first — including Gemini 4 Argon under the Claude
+provider, a proxied alias that doesn't run on the user's Google account. The
+patch pins the Gemini member to the Antigravity provider and has it pick the
+strongest Gemini that account offers, so the choice follows the account instead
+of a hard-coded id. Argon itself is real: Google's Gemini 4 flagships (Argon on
+AI Pro, Carbon on Ultra) dropped the "Pro" name, so the patch defines flagship
+tier by name, not by the word Pro. The account here is on AI Plus, which offers
+only Flash models, so a council of Opus, Sol and Muse made a below-flagship
+Gemini advisory: one first-round pass plus targeted re-checks, never gating the
+stop. Opus and Sol are then the only required members, which replaces upstream's
+"three providers" rule. Upgrading to AI Pro would restore a blocking Gemini seat.
+
+Upstream's own reviews (lust-lang) use Muse Wonder Full beside Sol, but Full
+needs Meta's Power or Maximum plan and the account here is on Everyday, which
+offers plain Wonder at 10–50 prompts per five hours. A council of Opus, Sol and
+Gemini agreed on plain Wonder as an advisory member for the same reason: a
+quota-bound, weaker member that can veto stalls the "all satisfied" loop. T3's own Muse provider is disabled; Muse is reached
+through the CLIProxyAPI `proxy-meta/*` models in OpenCode. Contributor variants
+are excluded because they let Meta train on the code.
