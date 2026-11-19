@@ -94,6 +94,14 @@ sway (`WLR_BACKENDS=headless`): its windows, focus and input never touch niri.
   (never `--systemd`, which would point the user's own services at the agent
   desktop) gives portals started on that bus the agent's display. Without it,
   `xdg-desktop-portal-gtk` exits on start.
+- **`run --user-bus` turns portals off.** An agent passed the user's session
+  bus into a Wails/GTK4 app so it could read its token from the keyring, and
+  the app's folder chooser opened on the user's real screen: GTK4 routes it
+  through xdg-desktop-portal on whatever bus it has, and the user's portal
+  draws on the user's session. `GDK_DEBUG=no-portals` (GTK4) and
+  `GTK_USE_PORTAL=0` (GTK3) make GTK draw its in-process chooser, which then
+  showed up inside the agent desktop and worked. On the private bus portals
+  draw inside the agent desktop, so the flag only applies with `--user-bus`.
 - **Apps run in scopes, not services.** `run` uses `systemd-run --scope` so the
   app keeps the agent shell's environment (dev shells, cwd). `PartOf` the
   desktop unit makes `down` take them along. Chromium ignores SIGTERM once its

@@ -9,7 +9,8 @@ agent-desktop: headless Wayland desktops for agents, invisible to your session.
   up [name]                    start a desktop (default name: default)
   down [name]                  stop it and every app it runs
   list                         running desktops and their VNC ports
-  run <name> [--fresh] -- cmd  launch a GUI app in it (detached; logs to a file)
+  run <name> [--fresh] [--user-bus] -- cmd
+                               launch a GUI app in it (detached; logs to a file)
   exec <name> -- cmd           run a command against it in the foreground
   windows <name>               list its windows (JSON lines)
   shot <name> [path]           screenshot the whole output to a PNG
@@ -125,16 +126,28 @@ list() {
 }
 
 run() {
-  local name=${1:-} fresh='' unit log
+  local name=${1:-} fresh='' user_bus='' outer_bus=${DBUS_SESSION_BUS_ADDRESS-} unit log
   shift || true
   load "$name"
-  [[ ${1:-} == --fresh ]] && fresh=1 && shift
+  while :; do
+    case ${1:-} in
+    --fresh) fresh=1 ;;
+    --user-bus) user_bus=1 ;;
+    *) break ;;
+    esac
+    shift
+  done
   [[ ${1:-} == -- ]] && shift
-  (($#)) || die "usage: agent-desktop run <name> [--fresh] -- <command>..."
+  (($#)) || die "usage: agent-desktop run <name> [--fresh] [--user-bus] -- <command>..."
   if [[ -n $fresh ]]; then
     export XDG_CONFIG_HOME=$root/$name/home/config XDG_DATA_HOME=$root/$name/home/data \
       XDG_CACHE_HOME=$root/$name/home/cache XDG_STATE_HOME=$root/$name/home/state
     mkdir -p "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_CACHE_HOME" "$XDG_STATE_HOME"
+  fi
+  if [[ -n $user_bus ]]; then
+    [[ -n $outer_bus ]] || die "--user-bus: DBUS_SESSION_BUS_ADDRESS is not set in this shell"
+    # Portals on the user's bus draw their dialogs on the user's screen; keep GTK's in-process ones.
+    export DBUS_SESSION_BUS_ADDRESS=$outer_bus GDK_DEBUG=${GDK_DEBUG:+$GDK_DEBUG,}no-portals GTK_USE_PORTAL=0
   fi
   unit=agent-desktop-$name-$(date +%s%N | tail -c 8)
   log=$root/$name/$unit.log

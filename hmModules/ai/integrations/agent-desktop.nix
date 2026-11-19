@@ -59,6 +59,28 @@ with lib; let
       that `windows` never lists it. Then pass the app's own profile flag
       (`--user-data-dir=…` for Chromium and Electron), or `run <name> --fresh`, which
       gives it empty `XDG_*_HOME` directories that `down` deletes.
+    - The app gets the desktop's private D-Bus, so it cannot reach the user's
+      keyring (Secret Service). If it needs that, use `run <name> --user-bus`,
+      never `env DBUS_SESSION_BUS_ADDRESS=…` yourself: on the user's bus,
+      xdg-desktop-portal draws file choosers (and print, screenshot dialogs) on
+      the **user's real screen**. `--user-bus` also sets
+      `GDK_DEBUG=no-portals GTK_USE_PORTAL=0`, so GTK draws its own dialogs
+      inside the desktop. Notifications and opened URLs can still land on the
+      user's session, so pass the user's bus only when the app needs it.
+    - If anything may have appeared on the user's screen, stop it at once
+      (`systemctl --user stop <scope>`, the scope `run` printed) and tell the
+      user.
+    - An unwrapped nix GTK binary (a raw dev build, not `./result/bin/app`)
+      aborts on its first file chooser with `No GSettings schemas are
+      installed`. Launch it through the nix wrapper or the project's dev shell,
+      or point `XDG_DATA_DIRS` at the gtk4 it links (append a
+      `gsettings-desktop-schemas` store path if the log names another schema):
+
+      ```bash
+      G=$(ldd ./bin/app | grep -om1 '/nix/store/[^/]*gtk4-[^/]*')
+      agent-desktop run mytest -- env XDG_DATA_DIRS="$(echo "$G"/share/gsettings-schemas/*):/run/current-system/sw/share" ./bin/app
+      ```
+
     - App output goes to the log path `run` printed. Read it when a window never
       appears.
     - `down` stops the desktop and every app started in it. Desktops do not
