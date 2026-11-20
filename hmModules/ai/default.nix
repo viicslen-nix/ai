@@ -71,6 +71,7 @@ with lib; let
       ;
   };
   ponytailIntegration = import ./integrations/ponytail.nix {inherit lib cfg config pkgs aiInputs isAttrs options;};
+  openCodeReviewIntegration = import ./integrations/open-code-review.nix {inherit lib cfg pkgs aiInputs isAttrs;};
   mcpGatewayIntegration = import ./integrations/mcp-gateway.nix {
     inherit lib cfg pkgs config;
     mcps = effectiveMcps;
@@ -151,6 +152,7 @@ with lib; let
     jev = jevIntegration;
     ponytail = ponytailIntegration;
     superset = supersetIntegration;
+    open-code-review = openCodeReviewIntegration;
   };
   allIntegrations = skillIntegrations // {gateway = mcpGatewayIntegration;};
   renameSkills = import ../../builders/renameSkills.nix {inherit lib pkgs;};
@@ -524,7 +526,8 @@ in {
         ++ agentDesktopIntegration.warnings
         ++ jevIntegration.warnings
         ++ ponytailIntegration.warnings
-        ++ supersetIntegration.warnings;
+        ++ supersetIntegration.warnings
+        ++ openCodeReviewIntegration.warnings;
     }
     # With the gateway on, clients see only the gateway; the real servers
     # become its backends.
@@ -616,6 +619,7 @@ in {
     agentDesktopIntegration.config
     jevIntegration.config
     ponytailIntegration.config
+    openCodeReviewIntegration.config
     mcpGatewayIntegration.config
   ]);
 }

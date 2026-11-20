@@ -142,6 +142,7 @@ in {
           };
           mempalace.enable = true;
           coderabbit.enable = true;
+          open-code-review.enable = true;
           openwiki.enable = true;
           ponytail.enable = true;
         };
