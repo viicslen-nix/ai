@@ -67,7 +67,7 @@ What `modules.programs.aiProfile` turns on:
 | **Agents** | `ask`, `debug`, `documentation`, `pr-review-fixer`, `review`, `security` from `content/agents` |
 | **Context** | `content/AGENTS.md`, the global prompt every harness receives |
 | **MCP servers** | context7, gh_grep, linear, and playwright behind `aiProfile.playwright.enable` — OAuth or no auth at all |
-| **Integrations** | gateway (mcp-gateway), mempalace, coderabbit, openwiki, ponytail |
+| **Integrations** | gateway (mcp-gateway), mempalace, coderabbit, open-code-review, openwiki, ponytail |
 | **Claude Code** | marketplaces and plugins (mempalace, worktrunk, document-skills, …; ponytail via its integration) |
 
 Further integrations ship off by default: `orca`, `superset`,
@@ -179,7 +179,7 @@ allowlist (`builders/agentFor.nix`).
 | Option | Does |
 | --- | --- |
 | `modules.programs.aiProfile.enable` | The opinionated set above; defaults to `true` once imported |
-| `modules.programs.ai.integrations.<name>` | `enable`, `package` + `installPackage`, `skillNamespace` (multi-skill integrations), plus each one's own knobs. Integrations: `gateway`, `mempalace`, `coderabbit`, `openwiki`, `orca`, `superset`, `browser-harness`, `agent-desktop`, `jev`, `ponytail` |
+| `modules.programs.ai.integrations.<name>` | `enable`, `package` + `installPackage`, `skillNamespace` (multi-skill integrations), plus each one's own knobs. Integrations: `gateway`, `mempalace`, `coderabbit`, `open-code-review`, `openwiki`, `orca`, `superset`, `browser-harness`, `agent-desktop`, `jev`, `ponytail` |
 | `modules.programs.claude-code` | `marketplaces`, `plugins`, `settings` (merged over the pinned defaults); moves the config dir to `$XDG_CONFIG_HOME/claude` |
 | `modules.programs.opencode` | v2: `enable`, `model`, `small_model`, `phpantom.enable`; options on `programs.opencode2` |
 | `modules.programs.opencode1` | v1, the same shape; options on `programs.opencode1` |
@@ -234,6 +234,12 @@ suffix). With `default = true` the proxy replaces their logins instead: Claude
 Code and Codex get it in their own config, Copilot and agy under their plain
 names, and `<bin>-direct` keeps each one's own login. The key is read from the
 file at launch, never written to the store.
+
+With the open-code-review integration on, `ocr-proxy` (or plain `ocr` under
+`default`) reviews through the proxy's Anthropic API with
+`launchers.open-code-review.model`, which defaults to the Claude launcher's
+model. There is no `ocr-direct`: a provider set with `ocr config` already wins
+over the proxy.
 
 </details>
 

@@ -121,6 +121,16 @@ with lib; let
     exec ${getExe' config.programs.github-copilot-cli.package "copilot"} "$@"
   '';
 
+  # OCR's env strategy needs all three of URL, token and model; its own config.json still wins over it.
+  ocrLauncher = launcher "ocr" ''
+    OCR_LLM_TOKEN=${keyCommand}
+    export OCR_LLM_TOKEN
+    export OCR_LLM_URL=${escapeShellArg "${root}/v1/messages"}
+    export OCR_LLM_PROTOCOL=anthropic
+    ${exportModel "OCR_LLM_MODEL" cfg.launchers.open-code-review.model}
+    exec ${getExe' ai.integrations.open-code-review.package "ocr"} "$@"
+  '';
+
   # agy takes `modelProvider` only from ~/.gemini/antigravity-cli/settings.json
   # and has no config-dir variable, so the launcher runs it under a HOME of its
   # own: the real home's entries linked in, except a .gemini rebuilt from
@@ -327,8 +337,8 @@ in {
     default = null;
     description = mdDoc ''
       An LLM proxy every harness can use, such as CLIProxyAPI. opencode and pi
-      get it as extra providers; Claude Code, Codex, Copilot CLI and
-      Antigravity get `<bin>-<name>` launchers beside the plain commands, or
+      get it as extra providers; Claude Code, Codex, Copilot CLI,
+      Antigravity and Open Code Review get `<bin>-<name>` launchers beside the plain commands, or
       in their place with `default`.
     '';
     example = literalExpression ''
@@ -394,6 +404,12 @@ in {
         launchers = {
           claude.model = launcherModel " (`ANTHROPIC_MODEL`)";
           codex.model = launcherModel "";
+          open-code-review.model =
+            launcherModel ", over the proxy's Anthropic API; required, or OCR ignores the proxy"
+            // {
+              default = config.launchers.claude.model;
+              defaultText = literalExpression "launchers.claude.model";
+            };
           copilot.model = launcherModel "; required by Copilot unless `--model` is passed. Its `api` picks the wire format";
           antigravity.model = mkOption {
             type = types.nullOr types.str;
@@ -415,6 +431,7 @@ in {
           pi = targetOption "Write the providers to pi's models.json.";
           github-copilot-cli = targetOption "Add the `copilot-<name>` launcher.";
           antigravity-cli = targetOption "Add the `agy-<name>` launcher.";
+          open-code-review = targetOption "Add the `ocr-<name>` launcher when the open-code-review integration is enabled.";
         };
       };
     }));
@@ -501,6 +518,10 @@ in {
           '');
       }
     ))
+
+    (mkIf (ai.enable && cfg != null && cfg.targets.open-code-review && ai.integrations.open-code-review.enable) {
+      home.packages = [ocrLauncher];
+    })
 
     (optionalAttrs (hasAttrByPath ["programs" "opencode1" "settings"] options) (
       mkIf (on "opencode1" ["programs" "opencode1"] && usedApis != []) {
