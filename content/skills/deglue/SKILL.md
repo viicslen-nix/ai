@@ -1,13 +1,13 @@
 ---
 name: deglue
-description: After a migration or rewrite, find and remove the leftover glue (pass-through wrappers), stringly-typed values that should be enums, and duplicated code, in any repo.
+description: After a migration or rewrite, find and remove the leftover glue (pass-through wrappers), stringly-typed values that should be enums, duplicated code, and the bugs they hide, in any repo.
 argument-hint: "[paths | ref | range | PR# | branch]... [--report-only]"
 disable-model-invocation: true
 ---
 
 # Deglue
 
-A migration lands in two moves: build the new core, then **glue** it to the old callers so nothing breaks. This skill does the third move people skip: take the glue back out. It also sweeps for the two other things migrations leave behind: **stringly-typed** values, where an old SDK's constants became raw strings, and **twins**, where old and new copies of the same logic both survived.
+A migration lands in two moves: build the new core, then **glue** it to the old callers so nothing breaks. This skill does the third move people skip: take the glue back out. It also sweeps for the two other things migrations leave behind: **stringly-typed** values, where an old SDK's constants became raw strings, and **twins**, where old and new copies of the same logic both survived. Leftovers hide **bugs**: a comparison against a value the new code never produces, or a config key the migration renamed. Those bugs are the most valuable findings.
 
 The definitions, signals, keep rules and fix shapes for each category are in [`REFERENCE.md`](REFERENCE.md). Every detector reads it.
 
@@ -31,15 +31,15 @@ Then find the **new core**: what the change brought in. That means new dependenc
 
 ## 2. Load the house rules
 
-Read the repo's agent instructions (`AGENTS.md`, `CLAUDE.md`, rule indexes) and every rule file that covers a path in scope. Note the conventions that change a verdict, such as "actions may be invoked as jobs", "enums live in X", "no API resources" or "tests use `it()`". Pass them to the detectors as a short list.
+Read the repo's agent instructions (`AGENTS.md`, `CLAUDE.md`, rule indexes) and every rule file that covers a path in scope. Note the conventions that change a verdict, such as "actions may be invoked as jobs", "enums live in X", "no API resources" or "tests use `it()`". Also note the related repos and services the instructions list: one of them may own an entrypoint this repo still carries. Pass all of this to the detectors as a short list.
 
 ## 3. Detect
 
 Split the in-scope files into areas of about 60 files each, by directory or module. Launch one read-only subagent per area, all in one message. Brief each one with:
 - its file list, the new core, and the house-rule list;
 - read [`REFERENCE.md`](REFERENCE.md) (give its absolute path);
-- check every file for all three categories, and grep the whole repo for **twins** of anything it finds, not just its own area;
-- return rows only: `file:line | category | what it forwards to / literal / twin location | caller count (grep, measured) | introduced by (commit via git log -S) | proposed verdict + reason`.
+- check every file for all four categories, and grep the whole repo for **twins** of anything it finds, not just its own area;
+- return rows in the format at the end of `REFERENCE.md`.
 
 **Done when** every file in scope is covered by some detector's report.
 
@@ -48,26 +48,35 @@ Split the in-scope files into areas of about 60 files each, by directory or modu
 Merge the rows and collapse twins reported by more than one detector. Check every candidate against the current code yourself:
 - Grep every caller, including string references: container bindings, route files, queue payloads, config, morph maps and frontend calls. A caller count must come from a search you ran.
 - Apply the keep rules in `REFERENCE.md`. A row that hits one is reported as **keep (reason)**, not dropped silently.
+- Prove or disprove every bug row, following `REFERENCE.md › Bugs`. Check that production still reaches the code first, since a related service may have taken over that entrypoint.
 - For stringly-typed values that are persisted, query the distinct stored values, or say the check wasn't possible. An enum swap that misses a stored value is a runtime failure.
 - Anything inside a vendored package or a submodule that other repos use is **report-only**.
 
-**Done when** every candidate has a verdict (remove, inline, enum, merge, keep or report-only) and a measured caller count.
+**Done when** every candidate has a verdict (fix, remove, inline, enum, merge, keep or report-only) and a measured caller count, and every bug row is marked **proven** or **disproven**. If a bug row is still unproven, its report row says what would prove it.
 
 ## 5. Report and choose
 
-Show one table grouped by change, then by category. Columns: location, finding, callers, verdict, fix, risk. If there are more than about 25 rows, also offer an HTML page. Ask the user which groups to apply, using AskUserQuestion with multi-select. With `--report-only`, stop here.
+Show one table grouped by change, then by category, with bugs first. Columns: location, finding, callers, verdict, fix, risk. Each removal's fix says what it buys, such as "last caller of X gone" or "one copy instead of three". Mark the rows that need a data migration or touch many files as candidates for their own thread or PR. If there are more than about 25 rows, also offer an HTML page. Ask the user which groups to apply, using AskUserQuestion with multi-select. With `--report-only`, stop here.
 
 ## 6. Apply
 
-Work on your own branch, stacked on the scope's head. If another session is working on that head, check before touching its worktree. Fix one category per area per commit:
+Work on your own branch, stacked on the scope's head. If another session is working on that head, check before touching its worktree. Fix bugs first, each with the failing test from step 4. Then fix one category per area per commit:
 - **Glue:** point every caller at the target, then delete the wrapper. Keep any validation and error handling it did by moving it into the caller or the target. Move its tests onto the target: fake the dependency instead of mocking the wrapper.
 - **Stringly-typed:** type the parameters, properties and casts with the enum. Convert at the trust boundary (request validation, model cast, payload parsing). Call `->value` (or the language's equivalent) only at a boundary that requires a string.
 - **Twins:** keep the newer or better-tested copy as the single source of truth, then delete the other one and redirect its callers.
 
 After each commit, run the affected tests, the formatter and static analysis on the touched files. Grep for the deleted symbol and expect zero hits.
 
+Keep each PR under the review bot's file limit (CodeRabbit skips a PR over 150 files); split it by change when it would go over. After any rebase or merge, run `git diff <base> -- <submodule paths>`. A pointer you didn't mean to move rolls that module back, and its callers fail.
+
 **Done when** every chosen row is applied with its tests passing, or reported back with the reason it couldn't be.
 
 ## 7. Hand back
 
-One line per commit. Then list the report-only rows (submodules, external contracts) that are still open, the checks you skipped, and any stored value an enum might not cover.
+One line per commit, grouped as bug fixes, user-visible changes (different options, ordering or error responses) and pure cleanup, so the user can see at a glance what changes behaviour. Then list:
+- the report-only rows (submodules, external contracts) that are still open;
+- the checks you skipped;
+- any stored value an enum might not cover;
+- any data a bug already wrote, with its measured row count.
+
+Branch any follow-up work on the same files from this branch, or start it after this branch merges. A deglue diff touches many files, so follow-up work branched from the default branch makes overlapping edits and the two collide at merge.

@@ -1,6 +1,6 @@
 # Deglue reference
 
-The three categories a detector looks for. Each section gives the signals that flag a candidate, the rules for keeping one, and the shape of the fix. The examples are language-agnostic; apply them in the repo's own idiom.
+The four categories a detector looks for. Each section gives the signals that flag a candidate, the rules for keeping one, and the shape of the fix. The examples are language-agnostic; apply them in the repo's own idiom.
 
 ## Glue
 
@@ -51,8 +51,24 @@ The same logic in two or more places, often an old copy beside a new one.
 
 **Fix:** pick the newer or better-tested copy as the single source of truth, redirect the other copy's callers to it, then delete the other copy. If a shared helper is genuinely needed, put it next to its strongest consumer, in the repo's existing style for helpers, scopes and value objects.
 
+## Bugs
+
+Leftover code that no longer does what it claims, because the migration changed something underneath it. Rank these above every cleanup row.
+
+**Signals**
+- A comparison against a value the code never produces, e.g. `$offer->status === 'Pending'` when the status reads back as enum names such as `Open` or `CounteredBuyer`. The branch is dead.
+- A config key, attribute, relation or method that the migration renamed, or that was never defined. It reads as null, so the check is always empty.
+- A conversion the new core already does, still done again by an old caller. For example, `$paid * 100` going into a cast that already stores minor units.
+- An inverted or swapped condition next to code the migration touched. The cause may predate the migration; date it with `git log -S`.
+
+**Prove it:** write a test that fails on the current code and passes after the fix. Then mark the row **proven**. If the test passes on the current code, the row is **disproven**; drop it. When the bug writes data, find the date it went live and count the rows written in that window (on a production read replica if there is one). Report the count. Repairing that data is a separate decision for the user.
+
+**Not a bug when** production no longer reaches the code, for example because a related service now owns that entrypoint. Report it as an orphan under glue instead.
+
+**Fix:** the smallest change that makes the test pass, in its own commit ahead of the cleanup.
+
 ## Row format
 
 ```
-file:line | glue|stringly|twin | target / literal / twin location | callers: N | introduced: <sha> | remove|inline|enum|merge|keep|report-only — reason
+file:line | bug|glue|stringly|twin | target / literal / twin location | callers: N | introduced: <sha> | proven|disproven|unproven (bugs only) | fix|remove|inline|enum|merge|keep|report-only — reason
 ```
