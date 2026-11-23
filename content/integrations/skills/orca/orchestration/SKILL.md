@@ -1,10 +1,10 @@
 ---
-description: 'Run work in separate Orca worker agents and get their results back. Use when the user asks for Orca workers or supervision (monitor, task DAGs, ask/reply, decision gates), or when the work needs something your own subagents cannot give: a different agent (such as Codex from Claude) or its own Orca workspace. "Have Codex (or Claude) review this and report back" means an Orca worker of that agent, even when you have your own model subagents. Also use when you are a dispatched worker (a prompt with Task and Dispatch IDs: ask, worker_done). Otherwise prefer your own subagents, including for long or parallel work. Use `orca-cli` to hand work off with nothing expected back ("hand off", "handover", "give this to another agent", "another worktree"), and for terminal control, shell commands, worktree management, and reading or waiting on terminals.'
+description: 'Run work in separate Orca worker agents and get their results back. Use when the user invokes /orchestration, asks for Orca workers or supervision (monitor, task DAGs, ask/reply, decision gates), or asks to split, parallelize or fan out code changes across agents, worktrees or branches; use Orca workers for those. Also use when the work needs a different agent (such as Codex from Claude) or its own Orca workspace: "Have Codex (or Claude) review this and report back" means an Orca worker of that agent. Also use when you are a dispatched worker (a prompt with Task and Dispatch IDs: ask, worker_done). Unless the user asks for Orca workers or a named agent, searches, reads and research in your workspace stay with your own subagents, even in parallel. Use `orca-cli` to hand work off with nothing expected back ("hand off", "handover", "give this to another agent", "another worktree"), and for terminal control, shell commands, worktree management, and reading or waiting on terminals.'
 metadata:
     github-path: skills/orchestration
-    github-ref: refs/tags/v1.4.261
+    github-ref: refs/tags/v1.4.272
     github-repo: https://github.com/stablyai/orca
-    github-tree-sha: 2bde01b1734684a1371a6bbfec13339c08336d02
+    github-tree-sha: e9634d4e858f11f2408a7627dea56de594bf1167
 name: orchestration
 ---
 # Orca Orchestration
