@@ -4,7 +4,7 @@ The four categories a detector looks for. Each section gives the signals that fl
 
 ## Glue
 
-A class, method, function or module whose only job is to call something else. Removing it changes no behaviour.
+A class, method, function or module whose only job is to call something else. Removing it changes no behaviour. The test is why it survives: glue is an old abstraction kept alive only so existing callers don't have to change, not every one-line delegation.
 
 **Signals**
 - The body is one call to another unit, plus argument reshaping (rename, reorder, wrap into or unwrap from a DTO, fill a default), and it passes the result straight back.
@@ -18,6 +18,7 @@ A class, method, function or module whose only job is to call something else. Re
 - It has more than one entrypoint: it also runs as a queued job, controller, listener, command or scheduled task.
 - It holds logic: locking, transactions, retries, authorization, caching, logging, tenancy or scope setup, error translation, or validation at a trust boundary.
 - Its name is an **external contract**: an external service calls it by name; its class name is serialized into queue payloads, database rows (polymorphic types, stored job names) or cache keys; it is a route or webhook another system calls; or it is a package's public API.
+- It is a deliberate split: a front door that must expose the method (an adapter implementing a contract) hands each concern to its own focused helper, e.g. `EbayAdapter::createProfiles()` → `Policies::create()` beside `ListingReads` / `ListingWrites`. The one-line handoff keeps each helper's logic separate; it is not keeping old callers happy.
 - It is a seam that hides a third-party boundary, such as an HTTP client or SDK, and tests substitute it. A pass-through that tests only mock (`shouldRun`, `mock(Wrapper)`) is still glue: fake the dependency underneath instead.
 
 **Fix:** point every caller at the target, then delete the wrapper and its binding, alias and tests. For a queued job class still in flight, keep a stub that forwards to the new code for one release, and say so in the report.
