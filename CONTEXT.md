@@ -161,7 +161,12 @@ swept into the rename, and a remaining collision fails the eval.
 Superset's skills are vendored into `content/integrations/skills/superset`,
 pinned to the `cli-v<version>` tag of the superset-cli package: that package
 ships the same plugin, but listing a built package's directory at eval time is
-IFD, and the repo is too large to take as an input.
+IFD, and the repo is too large to take as an input. open-code-review's are
+pinned the same way, to its `v<version>` tag. Both integrations warn when the
+pin and the CLI disagree, which is why `update-skills` re-pins a pinned skill
+to the newest stable release sharing its tag prefix instead of `--unpin`ning
+it: an unpinned skill follows the default branch, ahead of any release the CLI
+package can be on, and the integrations' version check reads the pin.
 
 The option merges across definitions, so a consumer adds its own skills rather
 than replacing these — which is how the nixos repo layers in the skills that

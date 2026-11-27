@@ -32,12 +32,24 @@ vendor-integration-skills INTEGRATION REPO *ARGS:
 # Pull upstream changes into every vendored skill. `gh skill` tracks each one's
 # origin in its own SKILL.md frontmatter, so there is no manifest to keep — and
 # a skill written here by hand has none, so it is warned about and skipped.
+# A pinned skill tracks its CLI's release tag, so it is re-pinned to the newest
+# release with the same tag prefix instead of following the default branch.
 # Usage: just update-skills [--dry-run]
 update-skills *ARGS:
   #!/usr/bin/env bash
   set -euo pipefail
   for dir in {{SKILLS_DIR}} $(just _integration-skill-dirs); do
-    gh skill update --all --dir "$dir" {{ARGS}}
+    gh skill update --all --dir "$dir" {{ARGS}} 2>&1 | { grep -v 'is pinned to' || true; }
+    for f in $(grep -l '^ *github-pinned:' "$dir"/*/SKILL.md || true); do
+      read -r pin repo latest < <(just _pin-status "$f")
+      path=$(sed -n 's/^ *github-path: *//p' "$f")
+      [ -n "$latest" ] && [ "$latest" != "$pin" ] || continue
+      if [[ " {{ARGS}} " == *" --dry-run "* ]]; then
+        echo "would re-pin $repo $path: $pin → $latest"
+      else
+        gh skill install "$repo" "$path" --force --dir "$dir" --pin "$latest"
+      fi
+    done
     git add "$dir"
   done
 
@@ -64,10 +76,8 @@ skill-changes:
     gh skill update --all --dir "$tmp/$dir" 2>&1 |
       { grep -v -e 'has no GitHub metadata' -e 'is pinned to' || true; } >&2
     if f=$(grep -l '^ *github-pinned:' "$dir"/*/SKILL.md | head -1); then
-      pin=$(sed -n 's/^ *github-pinned: *//p' "$f")
-      repo=$(sed -n 's|^ *github-repo: *https://github.com/||p' "$f")
-      latest=$(gh api "repos/$repo/releases?per_page=100" --jq "[.[].tag_name | select(startswith(\"${pin%%[0-9]*}\"))][0]")
-      echo "⊘ pinned to $pin (latest $latest), skipped" >&2
+      read -r pin repo latest < <(just _pin-status "$f")
+      echo "⊘ pinned to $pin (latest $latest), update-skills re-pins" >&2
     fi
     diff -ruN "$dir" "$tmp/$dir" || true
   done
@@ -84,6 +94,17 @@ skills:
         --jq '.[] | select(.sourceURL != "") | [.skillName, (.sourceURL | sub("https://github.com/"; "")), .version] | @tsv'
     done
   } | column -t -s $'\t'
+
+# "<pin> <owner/repo> <newest stable release sharing the pin's prefix>" for a
+# pinned SKILL.md; the prefix keeps superset's `cli-v` tags apart from its app's.
+[private]
+_pin-status FILE:
+  #!/usr/bin/env bash
+  set -euo pipefail
+  pin=$(sed -n 's/^ *github-pinned: *//p' "{{FILE}}")
+  repo=$(sed -n 's|^ *github-repo: *https://github.com/||p' "{{FILE}}")
+  latest=$(gh api "repos/$repo/releases?per_page=100" --jq "[.[] | select(.prerelease | not) | .tag_name | select(startswith(\"${pin%%[0-9]*}\"))][0] // empty")
+  echo "$pin $repo $latest"
 
 # Integration directories holding at least one vendored skill. Hand-written
 # integration skills (coderabbit) have no origin metadata and are skipped.
