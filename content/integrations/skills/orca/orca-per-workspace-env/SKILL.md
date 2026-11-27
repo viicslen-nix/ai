@@ -2,9 +2,9 @@
 description: 'Set up, review, debug, or validate an Orca per-workspace environment recipe: the on-demand, disposable runtime (cloud sandbox, VM, SSH host, or local container) Orca creates fresh for each workspace. Use to stand up a new recipe end to end, fix an `environmentRecipes` entry in `orca.yaml`, scaffold provider lifecycle scripts, or resolve an `orca vm recipe doctor` failure. Use `orca-cli` for ordinary worktree and workspace creation with no recipe involved.'
 metadata:
     github-path: skills/orca-per-workspace-env
-    github-ref: refs/tags/v1.4.261
+    github-ref: refs/tags/v1.4.280
     github-repo: https://github.com/stablyai/orca
-    github-tree-sha: e5742c4ab504eff7a24411550a5fab5f0e2c9fc0
+    github-tree-sha: c6ca283a14d225337d584352fe72839cb980620c
 name: orca-per-workspace-env
 ---
 # Per-Workspace Environments
@@ -15,8 +15,9 @@ This discovery stub loads the version-matched guide from the Orca executable use
 
 Choose the executable once and reuse it for every later command:
 
-- If the `ORCA_CLI_COMMAND` environment variable is set, use its value. Orca exports this
-  for managed WSL sessions.
+- If the `ORCA_CLI_COMMAND` environment variable is set, use its value. Orca exports it
+  in sessions it starts when it knows their executable, such as WSL terminals and agent
+  chats.
 - Otherwise, in a dev checkout whose session exposes `ORCA_DEV_REPO_ROOT`, use `orca-dev`.
 - Otherwise, on Linux outside an Orca-managed terminal, use `orca-ide`. Never run bare
   `orca` there — outside Orca's terminals it normally resolves to the
@@ -28,7 +29,11 @@ running anything; do not create a shell variable or run `ORCA` literally. This w
 same way in POSIX shells, PowerShell, and cmd.exe.
 
 If the selected executable cannot run, report its exact error and stop. Do not fall through
-to another executable, which could silently target a different Orca build.
+to another executable, which could silently target a different Orca build. Exception: on
+Windows, when `ORCA_CLI_COMMAND` or `ORCA_TERMINAL_HANDLE` is set (Orca supplied the
+executable), a sandboxed shell that reports it as not recognized or access denied before
+Orca itself runs cannot read Orca's install. Re-run that command, and later Orca commands,
+with escalated permissions before giving up.
 
 ## Load the version-matched guide before running Orca commands
 
@@ -36,12 +41,15 @@ to another executable, which could silently target a different Orca build.
 ORCA skills get orca-per-workspace-env
 ```
 
-Prefer `--json`. Use the selected executable's `--help` for commands or flags the guide does
-not cover. A `runtime_unavailable` error is usually transient while Orca is busy or
-restarting: wait a few seconds and retry the command. Before retrying a command that changes
-something, check whether it already took effect, and reuse any request ID the error names.
-`ORCA open` can bring Orca's window to the front over the user's work, so never run it to
-retry a failed command. Run it only when the user asks, or when Orca is really not running:
+Run `skills get` as shown, without `--json`: `--json` packs the guide into one escaped line.
+If your tool cuts the middle out of the guide, read only the missing line range rather than
+loading the whole guide again. Prefer `--json` for other commands. Use the selected
+executable's `--help` for commands or flags the guide does not cover. A
+`runtime_unavailable` error is usually transient while Orca is busy or restarting: wait a
+few seconds and retry the command. Before retrying a command that changes something, check
+whether it already took effect, and reuse any request ID the error names. `ORCA open` can
+bring Orca's window to the front over the user's work, so never run it to retry a failed
+command. Run it only when the user asks, or when Orca is really not running:
 `ORCA status --json` reports `result.app.running: false`, or every command, `ORCA status`
 included, still cannot connect after about 30 seconds of retries. If a command fails with
 `runtime_access_denied`, your sandbox blocked the connection: re-run it with escalated
