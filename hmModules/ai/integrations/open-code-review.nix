@@ -13,11 +13,19 @@ with lib; let
 in {
   skills = {
     open-code-review-delegate = skillsDir + "/open-code-review-delegate";
-    # Our package moves the global rule file to XDG.
+    # Our package moves the global rule file to XDG. patchSkill returns only SKILL.md, so its script is referenced by store path.
     open-code-review = aiInputs.viicslen-lib.lib.skills.patchSkill (skillsDir + "/open-code-review/SKILL.md") [
       {
         from = "`~/.opencodereview/rule.json`";
         to = "`\${XDG_CONFIG_HOME:-~/.config}/opencodereview/rule.json`";
+      }
+      {
+        from = ''"$SKILL_DIR/scripts/review_pr.py"'';
+        to = ''"${skillsDir + "/open-code-review/scripts/review_pr.py"}"'';
+      }
+      {
+        from = " once, resolving `SKILL_DIR` from this installed skill.";
+        to = " once.";
       }
     ];
   };

@@ -2,15 +2,15 @@
 compatibility: |
     Requires the `ocr` CLI installed (via `npm install -g @alibaba-group/open-code-review` or GitHub release binary). Does NOT require a configured LLM endpoint — delegation mode is LLM-free on the OCR side.
 description: |
-    Review workspace changes, PRs, commits, or branch comparisons with the host agent's model. OCR's CLI handles file selection and rule resolution; this skill defines the review workflow, coverage requirements, and output format. Use when the user has no separate API key for OCR or wants to reuse their coding-agent subscription or model setup. For OCR's full native pipeline with its own model provider, choose open-code-review instead.
+    Review workspace changes, PRs, commits, or branch comparisons with the host agent's model. OCR's CLI selects files and resolves rules; the host reviews them for defects and explains changes that affect users or callers. Use when the user has no separate API key for OCR or wants to reuse their coding-agent subscription or model setup. For OCR's full native pipeline with its own model provider, choose open-code-review instead.
 license: Apache-2.0
 metadata:
     author: alibaba
     github-path: skills/open-code-review-delegate
-    github-pinned: v1.13.13
-    github-ref: refs/tags/v1.13.13
+    github-pinned: v1.14.4
+    github-ref: refs/tags/v1.14.4
     github-repo: https://github.com/alibaba/open-code-review
-    github-tree-sha: 9511b6fca78fb1e983cd849f6da6ff55caf670d7
+    github-tree-sha: 6c7a9c99a6b37ee032010c5190822662858de0aa
     homepage: https://github.com/alibaba/open-code-review
     version: 1.0.0
 name: open-code-review-delegate
@@ -107,6 +107,10 @@ Use `(path, status)` as the checklist identity. Workspace mode can report the sa
 
 For large changes, review in bounded batches grouped by shared rules and diff size. Do not stop after finding the first high-severity issue.
 
+While reading each diff, ask which existing caller or user workflow, if any, behaves differently. Reuse the same evidence; follow a caller, contract, or test only when it helps establish a concrete before/after scenario. Compare the sides selected in Step 3 (the new side in workspace mode is the live working tree). Assess behavior changes as you review the diff. Do not run `ocr review --analysis` or pass `--analysis` to `ocr delegate`.
+
+A removed interface may matter even when there are no new lines to review. If preview excludes a file solely as `deleted`, use its old side as context when needed, without counting it as reviewed. Respect all other exclusions when following evidence.
+
 ### Step 5: Format Output
 
 Each comment must follow this structure:
@@ -133,6 +137,8 @@ Group findings by severity:
 - **Low**: Style nits, minor suggestions — report only if clearly valuable
 
 Discard likely false positives silently.
+
+Report a material behavior change even if it is intentional and there are no defects. Name the affected workflow, what happened before and what happens now, and cite the supporting location. For example, removing a public option can break scripts that still pass it. Keep this impact distinct from severity-rated findings and file coverage; if it explains a finding, describe it there only once. Qualify material uncertainties, and omit the impact section when there is no concrete change to report.
 
 ### Step 7: Fix (Optional)
 
